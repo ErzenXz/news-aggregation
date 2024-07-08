@@ -41,7 +41,7 @@ namespace NewsAggregation.Controllers
         
 
         [HttpDelete("remove/{id}",Name ="admins/remove/{id}")]
-        public async Task<IActionResult> DeleteAdmin(int id)
+        public async Task<IActionResult> DeleteAdmin(Guid id)
         {
             try
             {
@@ -103,7 +103,7 @@ namespace NewsAggregation.Controllers
         }
 
         [HttpPut("users/{id}",Name ="users/{id}")]
-        public async Task<IActionResult> UpdateUser(int id, [FromBody] User user)
+        public async Task<IActionResult> UpdateUser(Guid id, [FromBody] User user)
         {
             try
             {

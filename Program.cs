@@ -6,6 +6,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using NewsAggregation.Data;
+using NewsAggregation.Services;
+using NewsAggregation.Services.Interfaces;
+using NewsAggregation.Services.ServiceJobs.Email;
+using ServiceStack;
 using Swashbuckle.AspNetCore.Filters;
 using System.Configuration;
 using System.Text;
@@ -36,8 +40,21 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.Limits.MaxRequestBodySize = 5242880000; // 500 MB File Upload Limit
 });
 
+
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped<IAuthService, AuthService>();
+
+
+
+
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+builder.Services.AddHostedService<BackgroundNotificationService>();
+builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>(sp => new BackgroundTaskQueue(100));
+builder.Services.AddTransient<SecureMail>();
+builder.Services.AddHostedService<QueueEmailService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -51,6 +68,7 @@ builder.Services.AddSwaggerGen(options =>
     options.OperationFilter<SecurityRequirementsOperationFilter>();
 });
 
+
 builder.Services.AddAuthentication().AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
@@ -62,7 +80,6 @@ builder.Services.AddAuthentication().AddJwtBearer(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetSection("AppSecurity:Secret").Value!))
     };
 });
-
 
 
 var configuration = new ConfigurationBuilder()
@@ -98,7 +115,12 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 
 
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(c =>
+{
+c.DisplayRequestDuration();
+c.DefaultModelExpandDepth(0);
+c.SwaggerEndpoint("/swagger/v1/swagger.json", "News Aggregation");
+});
 
 app.UseHttpsRedirection();
 

@@ -40,8 +40,8 @@ namespace NewsAggregation.Migrations
                     b.Property<DateTime?>("LastFailedLogin")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<long>("UserId")
-                        .HasColumnType("bigint");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
@@ -99,11 +99,9 @@ namespace NewsAggregation.Migrations
 
             modelBuilder.Entity("NewsAggregation.Models.User", b =>
                 {
-                    b.Property<long>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime?>("Birthdate")
                         .HasColumnType("timestamp with time zone");

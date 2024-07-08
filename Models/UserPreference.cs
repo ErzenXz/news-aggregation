@@ -1,4 +1,6 @@
-﻿namespace News_aggregation.Entities
+﻿using NewsAggregation.Models;
+
+namespace News_aggregation.Entities
 {
     public class UserPreference
     {

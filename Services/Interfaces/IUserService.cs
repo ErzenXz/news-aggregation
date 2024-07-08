@@ -1,7 +1,7 @@
-﻿namespace NewsAggregation.Services
+﻿namespace NewsAggregation.Services.Interfaces
 {
     public interface IUserService
     {
-        
+
     }
 }

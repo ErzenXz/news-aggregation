@@ -8,7 +8,7 @@ namespace NewsAggregation.Models.Security
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public long Id { get; set; }
-        public long UserId { get; set; }
+        public Guid UserId { get; set; }
         public int FailedLoginAttempts { get; set; }
         public DateTime? LastFailedLogin { get; set; }
         public string IpAddress { get; set; }

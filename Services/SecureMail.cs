@@ -1,17 +1,22 @@
 ﻿namespace NewsAggregation.Services
 {
+    using Microsoft.AspNetCore.Http.HttpResults;
+    using Microsoft.AspNetCore.Mvc;
+    using NewsAggregation.Services.ServiceJobs.Email;
     using System;
     using System.Net.Mail;
 
-    public static class SecureMail
+    public class SecureMail(IBackgroundTaskQueue taskQueue)
     {
-        // SMTP server details
-        private const string SmtpServer = "smtp-relay.brevo.com";
-        private const int SmtpPort = 587;
-        private const string SmtpUsername = "erzen.krasniqi4@student.uni-pr.edu";
-        private const string SmtpPassword = "w61nIpPZYd3AWSzk";
+        private readonly IBackgroundTaskQueue _taskQueue = taskQueue;
 
-        public static bool SendEmail(string fromAddress, string toAddress, string subject, string body)
+        // SMTP server details
+        private const string SmtpServer = "sandbox.smtp.mailtrap.io";
+        private const int SmtpPort = 587;
+        private const string SmtpUsername = "5648ffb3f4ea38";
+        private const string SmtpPassword = "6f4335407f828e";
+
+        public async Task<IActionResult> SendEmail(string fromAddress, string toAddress, string subject, string body)
         {
             MailMessage mail = new MailMessage(fromAddress, toAddress, subject, body);
 
@@ -24,12 +29,16 @@
 
             try
             {
-                client.Send(mail);
-                return true;
+                await _taskQueue.QueueBackgroundWorkItemAsync(async token =>
+                {
+                    await client.SendMailAsync(mail);
+                });
+
+                return new AcceptedResult();
             }
             catch (Exception ex)
             {
-                return false;
+                return new BadRequestObjectResult(new { Message = ex.Message });
             }
         }
     }

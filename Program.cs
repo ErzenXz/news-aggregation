@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using NewsAggregation;
 using NewsAggregation.Data;
 using NewsAggregation.Services;
 using NewsAggregation.Services.Interfaces;
@@ -121,6 +122,8 @@ c.DisplayRequestDuration();
 c.DefaultModelExpandDepth(0);
 c.SwaggerEndpoint("/swagger/v1/swagger.json", "News Aggregation");
 });
+
+app.MapScalarUi();
 
 app.UseHttpsRedirection();
 

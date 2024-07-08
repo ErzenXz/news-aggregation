@@ -22,12 +22,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Allow CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("MySpecificOrigins", builder =>
+    options.AddPolicy("AllowedOrigins", builder =>
     {
-        builder.WithOrigins("https://personalpodcast.erzen.tk",
-                            "https://personalpodcast.erzen.xyz",
-                            "https://admin.personalpodcast.erzen.tk",
-                            "https://personalpodcast.pages.dev/")
+        builder.WithOrigins("http://localhost:5500", "https://localhost:5500", "http://localhost:5173")
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials()
@@ -127,7 +124,7 @@ app.MapScalarUi();
 
 app.UseHttpsRedirection();
 
-app.UseCors("MySpecificOrigins");
+app.UseCors("AllowedOrigins");
 
 app.UseAuthorization();
 

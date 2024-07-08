@@ -17,13 +17,6 @@ jobs:
            with:
               dotnet-version: 8.0.x
          - name: Restore dependencies
-           run: dotnet restore ./back/PersonalPodcast/
+           run: dotnet restore .
          - name: Build
-           run: dotnet build --no-restore ./back/PersonalPodcast/
-         # Add steps for the second project below
-         - name: Restore dependencies (Second Project)
-           run: dotnet restore ./back/PersonalPodcast.Test/
-         - name: Build (Second Project)
-           run: dotnet build --no-restore ./back/PersonalPodcast.Test/
-         #- name: Test (Second Project)
-          # run: dotnet test --verbosity normal ./back/PersonalPodcast.Test/
+           run: dotnet build --no-restore .

@@ -1,1 +1,8 @@
 [![.NET](https://github.com/ErzenXz/news-aggregation/actions/workflows/dotnet.yml/badge.svg)](https://github.com/ErzenXz/news-aggregation/actions/workflows/dotnet.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ErzenXz_news-aggregation&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=ErzenXz_news-aggregation)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=ErzenXz_news-aggregation&metric=bugs)](https://sonarcloud.io/summary/new_code?id=ErzenXz_news-aggregation)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=ErzenXz_news-aggregation&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=ErzenXz_news-aggregation)
+[![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=ErzenXz_news-aggregation&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=ErzenXz_news-aggregation)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=ErzenXz_news-aggregation&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=ErzenXz_news-aggregation)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=ErzenXz_news-aggregation&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=ErzenXz_news-aggregation)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=ErzenXz_news-aggregation&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=ErzenXz_news-aggregation)

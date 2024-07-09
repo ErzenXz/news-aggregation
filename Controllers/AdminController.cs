@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using NewsAggregation.Data;
 using NewsAggregation.Models;
 using NewsAggregation.Models.Security;
+using NewsAggregation.Services.Interfaces;
 using NewsAggregation.Services.ServiceJobs.Email;
 using System.Data;
 using System.Diagnostics;
@@ -20,11 +21,13 @@ namespace NewsAggregation.Controllers
     {
         private readonly ILogger<UserController> _logger;
         private readonly DBContext _dBContext;
+        private readonly IAdminService _adminService;
 
-        public AdminController(ILogger<UserController> logger, DBContext dBContext)
+        public AdminController(ILogger<UserController> logger, DBContext dBContext, IAdminService adminService)
         {
             _logger = logger;
             _dBContext = dBContext;
+            _adminService = adminService;
         }
 
         [HttpGet("all",Name = "admins/all")]
@@ -32,9 +35,7 @@ namespace NewsAggregation.Controllers
         {
             try
             {
-                var admins = await _dBContext.Users.Where(u => u.Role == "Admin" || u.Role == "SuperAdmin").ToListAsync();
-
-                return Ok(admins);
+                return await _adminService.GetAdmins();
             }
             catch (Exception ex)
             {
@@ -50,19 +51,7 @@ namespace NewsAggregation.Controllers
         {
             try
             {
-                var admin = await _dBContext.Users.FirstOrDefaultAsync(u => u.Id == id && (u.Role == "Admin" || u.Role == "SuperAdmin"));
-
-                if (admin == null)
-                {
-                    return NotFound(new {Code= 61, Message = $"Admin with Id {id} not found."});
-                }
-
-                admin.Role = "User";
-
-                _dBContext.Users.Update(admin);
-                await _dBContext.SaveChangesAsync();
-
-                return Ok(new {Code= 401, Message = $"Admin with Id {id} was demoted succesfuly!"});
+                return await _adminService.DeleteAdmin(id);
             }
             catch (Exception ex)
             {
@@ -76,11 +65,7 @@ namespace NewsAggregation.Controllers
         {
             try
             {
-                user.Role = "Admin";
-                await _dBContext.Users.AddAsync(user);
-                await _dBContext.SaveChangesAsync();
-
-                return Ok(new {Code=402, Message= "Admin created successfully" });
+                return await _adminService.CreateAdmin(user);
             }
             catch (Exception ex)
             {
@@ -96,9 +81,9 @@ namespace NewsAggregation.Controllers
         {
             try
             {
-                var users = await _dBContext.Users.Where(u => u.Role == "User").ToListAsync();
+                var users = await _adminService.GetUsers();
+                return users;
 
-                return Ok(users);
             }
             catch (Exception ex)
             {
@@ -112,19 +97,7 @@ namespace NewsAggregation.Controllers
         {
             try
             {
-                var userToUpdate = await _dBContext.Users.FirstOrDefaultAsync(u => u.Id == id && u.Role == "User");
-
-                if (userToUpdate == null)
-                {
-                    return NotFound(new {Code = 36, Message = "User not found." });
-                }
-
-                userToUpdate.Email = user.Email;
-                userToUpdate.Password = user.Password;
-
-                await _dBContext.SaveChangesAsync();
-
-                return Ok(userToUpdate);
+                return await _adminService.UpdateUser(id, user);
             }
             catch (Exception ex)
             {
@@ -140,14 +113,7 @@ namespace NewsAggregation.Controllers
         {
             try
             {
-                if (page < 0)
-                {
-                    return BadRequest(new { Message = "Invalid page number.", Code = 11 });
-                }
-
-                var ipMitigations = await _dBContext.ipMitigations.Skip(page * 10).Take(10).ToListAsync();
-
-                return Ok(ipMitigations);
+                return await _adminService.GetIpMitigations(page);
             }
             catch (Exception ex)
             {
@@ -161,14 +127,7 @@ namespace NewsAggregation.Controllers
         {
             try
             {
-                var ipMitigation = await _dBContext.ipMitigations.FindAsync(id);
-
-                if (ipMitigation == null)
-                {
-                    return NotFound(new {Code=403, Message="No IP's are currently blocked"});
-                }
-
-                return Ok(ipMitigation);
+                return await _adminService.GetIpMitigation(id);
             }
             catch (Exception ex)
             {
@@ -182,18 +141,7 @@ namespace NewsAggregation.Controllers
         {
             try
             {
-                var ipMitigationToUpdate = await _dBContext.ipMitigations.FindAsync(id);
-
-                if (ipMitigationToUpdate == null)
-                {
-                    return NotFound(new { Code = 404, Message = "IP not found." });
-                }
-
-                ipMitigationToUpdate.BlockedUntil = ipMitigation.BlockedUntil;
-
-                await _dBContext.SaveChangesAsync();
-
-                return Ok(ipMitigationToUpdate);
+                return await _adminService.UpdateIpMitigation(id, ipMitigation);
             }
             catch (Exception ex)
             {
@@ -207,17 +155,7 @@ namespace NewsAggregation.Controllers
         {
             try
             {
-                var ipMitigation = await _dBContext.ipMitigations.FindAsync(id);
-
-                if (ipMitigation == null)
-                {
-                    return NotFound(new { Code = 404, Message = "IP not found." });
-                }
-
-                _dBContext.ipMitigations.Remove(ipMitigation);
-                await _dBContext.SaveChangesAsync();
-
-                return Ok(new { Code = 405, Message = "IP not unblocked succesfuly." });
+                return await _adminService.DeleteIpMitigation(id);
             }
             catch (Exception ex)
             {
@@ -231,10 +169,7 @@ namespace NewsAggregation.Controllers
         {
             try
             {
-                await _dBContext.ipMitigations.AddAsync(ipMitigation);
-                await _dBContext.SaveChangesAsync();
-
-                return CreatedAtAction(nameof(GetIpMitigation), new { id = ipMitigation.Id }, ipMitigation);
+                return await _adminService.CreateIpMitigation(ipMitigation);
             }
             catch (Exception ex)
             {
@@ -244,73 +179,18 @@ namespace NewsAggregation.Controllers
         }
 
 
-        string FormatThreadState(int value)
-        {
-            switch (value)
-            {
-                case 0:
-                    return "Initialized";
-                case 1:
-                    return "Ready";
-                case 2:
-                    return "Running";
-                case 3:
-                    return "Standby";
-                case 4:
-                    return "Terminated";
-                case 5:
-                    return "Wait";
-                case 6:
-                    return "Transition";
-                case 7:
-                    return "Unknown";
-                default:
-                    return "Invalid";
-            }
-        }
-
         [HttpGet("status"), AllowAnonymous]
-        public IActionResult GetStatus()
+        public async Task<IActionResult> GetStatus()
         {
-
-            // Get info about the server running the API
-
-            var serverInfo = new
+            try
             {
-                ServerName = Environment.MachineName,
-                ServerTime = DateTime.Now,
-                ServerTimeZone = TimeZoneInfo.Local.DisplayName,
-                ServerOS = Environment.OSVersion.VersionString,
-                ServerFramework = RuntimeInformation.FrameworkDescription,
-                ServerRuntime = RuntimeInformation.OSDescription,
-                ServerArchitecture = RuntimeInformation.OSArchitecture,
-                ServerProcessors = Environment.ProcessorCount,
-                ServerMemory = Environment.WorkingSet,
-                ServerVersion = Environment.Version,
-                Threads = Process.GetCurrentProcess().Threads.Cast<ProcessThread>().Select(t => new
-                {
-                    t.Id,
-                    t.ThreadState,
-                    ThreadStateFormated = FormatThreadState((int) t.ThreadState),
-                    t.StartTime,
-                    t.TotalProcessorTime,
-                    t.PriorityLevel,
-                }).ToList(),
-                MemoryMaped = Environment.WorkingSet.ToString(),
-                ServerUptime = TimeSpan.FromMilliseconds(Environment.TickCount64),
-                ServerCulture = CultureInfo.CurrentCulture.DisplayName,
-                ServerIp = Dns.GetHostAddresses(Dns.GetHostName()).Where(ip => ip.AddressFamily == AddressFamily.InterNetwork).FirstOrDefault().ToString(),
-                ServerHostname = Dns.GetHostName(),
-                ServerDomain = Environment.UserDomainName
-            };
-
-            return Ok(new
+                return await _adminService.GetStatus();
+            }
+            catch (Exception ex)
             {
-                status = "ok",
-                version = "beta-1.0",
-                server = serverInfo
-            });
-
+                _logger.LogError(ex, "Error occurred while fetching status");
+                return StatusCode(500, "An error occurred while processing the request.");
+            }
         }
 
     }

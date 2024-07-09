@@ -5,6 +5,10 @@ using NewsAggregation.Data;
 using NewsAggregation.Models;
 using NewsAggregation.Models.Security;
 using System.Data;
+using System.Diagnostics;
+using System.Globalization;
+using System.Net;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
 namespace NewsAggregation.Controllers
@@ -238,6 +242,14 @@ namespace NewsAggregation.Controllers
             }
         }
 
+        double GetCpuUsage()
+        {
+            var cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+            cpuCounter.NextValue();
+            System.Threading.Thread.Sleep(1000);
+            return cpuCounter.NextValue();
+        }
+
 
         [HttpGet("status"), AllowAnonymous]
         public IActionResult GetStatus()
@@ -256,16 +268,35 @@ namespace NewsAggregation.Controllers
                 ServerArchitecture = RuntimeInformation.OSArchitecture,
                 ServerProcessors = Environment.ProcessorCount,
                 ServerMemory = Environment.WorkingSet,
-                ServerVersion = Environment.Version
+                ServerVersion = Environment.Version,
+                Threads = Process.GetCurrentProcess().Threads.Cast<ProcessThread>().Select(t => new
+                {
+                    t.Id,
+                    t.ThreadState,
+                    t.StartTime,
+                    t.TotalProcessorTime
+                }).ToList(),
+                MemoryMaped = Environment.WorkingSet.ToString(),
+                ServerUptime = TimeSpan.FromMilliseconds(Environment.TickCount64),
+                ServerCulture = CultureInfo.CurrentCulture.DisplayName,
+                ServerIp = Dns.GetHostAddresses(Dns.GetHostName()).Where(ip => ip.AddressFamily == AddressFamily.InterNetwork).FirstOrDefault().ToString(),
+                ServerHostname = Dns.GetHostName(),
+                ServerDomain = Environment.UserDomainName
             };
 
             return Ok(new
             {
                 status = "ok",
-                version = "1.1.2",
+                version = "beta-1.0",
                 server = serverInfo
             });
 
+        }
+
+        [HttpGet("cpu"), AllowAnonymous]
+        public IActionResult GetCpu()
+        {
+            return Ok(new { usage= GetCpuUsage() });
         }
 
 

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using NewsAggregation.Data;
 using NewsAggregation.Models;
 using NewsAggregation.Models.Security;
+using NewsAggregation.Services.ServiceJobs.Email;
 using System.Data;
 using System.Diagnostics;
 using System.Globalization;
@@ -242,14 +243,31 @@ namespace NewsAggregation.Controllers
             }
         }
 
-        double GetCpuUsage()
-        {
-            var cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
-            cpuCounter.NextValue();
-            System.Threading.Thread.Sleep(1000);
-            return cpuCounter.NextValue();
-        }
 
+        string FormatThreadState(int value)
+        {
+            switch (value)
+            {
+                case 0:
+                    return "Initialized";
+                case 1:
+                    return "Ready";
+                case 2:
+                    return "Running";
+                case 3:
+                    return "Standby";
+                case 4:
+                    return "Terminated";
+                case 5:
+                    return "Wait";
+                case 6:
+                    return "Transition";
+                case 7:
+                    return "Unknown";
+                default:
+                    return "Invalid";
+            }
+        }
 
         [HttpGet("status"), AllowAnonymous]
         public IActionResult GetStatus()
@@ -273,8 +291,10 @@ namespace NewsAggregation.Controllers
                 {
                     t.Id,
                     t.ThreadState,
+                    ThreadStateFormated = FormatThreadState((int) t.ThreadState),
                     t.StartTime,
-                    t.TotalProcessorTime
+                    t.TotalProcessorTime,
+                    t.PriorityLevel,
                 }).ToList(),
                 MemoryMaped = Environment.WorkingSet.ToString(),
                 ServerUptime = TimeSpan.FromMilliseconds(Environment.TickCount64),
@@ -292,13 +312,6 @@ namespace NewsAggregation.Controllers
             });
 
         }
-
-        [HttpGet("cpu"), AllowAnonymous]
-        public IActionResult GetCpu()
-        {
-            return Ok(new { usage= GetCpuUsage() });
-        }
-
 
     }
 }

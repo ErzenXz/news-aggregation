@@ -127,8 +127,7 @@ namespace NewsAggregation.Controllers
                 return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
             }
 
-            var user = await _dBContext.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
-
+            var user = FindUserByRefreshToken(refreshToken, Request.Headers[HeaderNames.UserAgent].ToString());
             if (user == null)
             {
                 return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
@@ -147,16 +146,14 @@ namespace NewsAggregation.Controllers
             user.Username = userUpdateRequest.Username;
             user.FullName = userUpdateRequest.Fullname;
             user.Email = userUpdateRequest.Email;
-            user.Password = BCrypt.Net.BCrypt.HashPassword(userUpdateRequest.Password);
             user.FirstLogin = userUpdateRequest.FirstLogin;
             user.LastLogin = userUpdateRequest.LastLogin;
             user.ConnectingIp = userUpdateRequest.ConIP;
             user.Birthdate = userUpdateRequest.Birthday;
-            // Generatge a new refresh token
-            user.RefreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-            await _dBContext.SaveChangesAsync();
+            user.TimeZone = userUpdateRequest.TimeZone;
+            user.Language = userUpdateRequest.Language;
 
-            SetCookies(refreshToken);
+            await _dBContext.SaveChangesAsync();
 
             // Add Content-Range header
             Response.Headers.Add("Content-Range", $"users 0-0/1");
@@ -164,7 +161,7 @@ namespace NewsAggregation.Controllers
             return Ok(new { Message = "User updated successfully.", Code = 79 });
         }    
 
-        [HttpPatch("update/last-login")]
+        [HttpPatch("update/last-login"), Authorize(Roles = "User,Admin,SuperAdmin")]
         public async Task<IActionResult> UpdateUserLastLogin()
         {
             var refreshToken = Request.Cookies["refreshToken"];
@@ -174,7 +171,7 @@ namespace NewsAggregation.Controllers
                 return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
             }
 
-            var user1 = await _dBContext.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+            var user1 = FindUserByRefreshToken(refreshToken, Request.Headers[HeaderNames.UserAgent].ToString());
 
 
             if (user1 == null)
@@ -191,7 +188,7 @@ namespace NewsAggregation.Controllers
             return Ok(new { Message = "Last login updated successfully.", Code = 80 });
         }
 
-        [HttpPatch("update/connecting-ip")]
+        [HttpPatch("update/connecting-ip"), Authorize(Roles = "User,Admin,SuperAdmin")]
         public async Task<IActionResult> UpdateUserConnectingIp()
         {
             var refreshToken = Request.Cookies["refreshToken"];
@@ -201,7 +198,7 @@ namespace NewsAggregation.Controllers
                 return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
             }
 
-            var user1 = await _dBContext.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+            var user1 = FindUserByRefreshToken(refreshToken, Request.Headers[HeaderNames.UserAgent].ToString());
 
             if (user1 == null)
             {
@@ -218,7 +215,7 @@ namespace NewsAggregation.Controllers
             return Ok(new { Message = "Connecting IP updated successfully.", Code = 81 });
         }
 
-        [HttpPatch("update/birthdate")]
+        [HttpPatch("update/birthdate"), Authorize(Roles = "User,Admin,SuperAdmin")]
         public async Task<IActionResult> UpdateUserBirthdate(DateTime newBirthDay)
         {
             var refreshToken = Request.Cookies["refreshToken"];
@@ -226,7 +223,7 @@ namespace NewsAggregation.Controllers
             {
                 return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
             }
-            var user = await _dBContext.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+            var user = FindUserByRefreshToken(refreshToken, Request.Headers[HeaderNames.UserAgent].ToString());
 
 
             if (user == null)
@@ -254,7 +251,7 @@ namespace NewsAggregation.Controllers
             return Ok(new { Message = "Birthdate updated successfully.", Code = 84 });
         }
 
-        [HttpPatch("update/username")]
+        [HttpPatch("update/username"), Authorize(Roles = "User,Admin,SuperAdmin")]
         public async Task<IActionResult> UpdateUserUsername(string newUsername)
         {
             var refreshToken = Request.Cookies["refreshToken"];
@@ -262,7 +259,7 @@ namespace NewsAggregation.Controllers
             {
                 return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
             }
-            var user = await _dBContext.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+            var user = FindUserByRefreshToken(refreshToken, Request.Headers[HeaderNames.UserAgent].ToString());
             if (user == null)
             {
                 return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
@@ -288,7 +285,7 @@ namespace NewsAggregation.Controllers
 
         }
 
-        [HttpPatch("update/fullname")]
+        [HttpPatch("update/fullname"), Authorize(Roles = "User,Admin,SuperAdmin")]
         public async Task<IActionResult> UpdateUserFullName(string newName)
         {
             var refreshToken = Request.Cookies["refreshToken"];
@@ -296,7 +293,7 @@ namespace NewsAggregation.Controllers
             {
                 return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
             }
-            var user = await _dBContext.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+            var user = FindUserByRefreshToken(refreshToken, Request.Headers[HeaderNames.UserAgent].ToString());
             if (user == null)
             {
                 return BadRequest(new { Message = "User not found.", Code = 36 });
@@ -346,19 +343,20 @@ namespace NewsAggregation.Controllers
             return Ok(new { Message = "User deleted successfully.", Code = 400 });
         }
 
-        private void SetCookies(string refreshToken)
+        // Find the user by giving a refresh token
+        [NonAction]
+        public User FindUserByRefreshToken(string refreshToken, string userAgent)
         {
-            var cookieOptions = new CookieOptions
+            var user = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.IsActive && r.UserAgent == userAgent);
+
+            if (user == null)
             {
-                HttpOnly = true,
-                Expires = DateTime.UtcNow.AddDays(7),
-                Secure = true,
-                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict
-            };
+                return null;
+            }
 
-            Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
+            return _dBContext.Users.FirstOrDefault(u => u.Id == user.UserId);
+
         }
-
 
     }
 }

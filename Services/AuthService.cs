@@ -68,7 +68,7 @@ namespace NewsAggregation.Services
             string passwordHashed = BCrypt.Net.BCrypt.HashPassword(userRequest.Password);
             string email = userRequest.Email;
 
-            var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            var refreshToken = GenerateRefreshToken();
 
             // Check if the user ip is blocked
             var ip = GetUserIp();
@@ -91,12 +91,40 @@ namespace NewsAggregation.Services
             user.Role = "User";
             user.Username = userRequest.Username;
             user.FullName = userRequest.FullName;
-            user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            user.Language = userRequest.Language;
+            user.TimeZone = userRequest.TimeZone;
             user.TokenVersion = 1;
+            user.ProfilePicture = "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(userRequest.FullName) + "&background=random&color=fff&rounded=true";
+
+            // Create a new refresh token
+            var refreshTokenObj = new RefreshTokens
+            {
+                UserId = user.Id,
+                Token = refreshToken,
+                Expires = DateTime.UtcNow.AddDays(7),
+                TokenVersion = user.TokenVersion,
+                Created = DateTime.UtcNow,
+                CreatedByIp = GetUserIp(),
+                UserAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString(),
+                DeviceName = "Unknown"
+            };
+
+            // Add failed login attempt to the AuthLogs table
+
+            var authLog = new AuthLogs();
+            authLog.Email = userRequest.Email;
+            authLog.IpAddress = ip;
+            authLog.UserAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString();
+            authLog.Date = DateTime.UtcNow;
+            authLog.Result = "Register";
+
+
+            SetCookies(refreshToken);
 
             // Save user to database
+            _dBContext.authLogs.Add(authLog);
             _dBContext.Users.Add(user);
+            _dBContext.refreshTokens.Add(refreshTokenObj);
             await _dBContext.SaveChangesAsync();
 
             return new OkObjectResult(new { Message = "User registered successfully!", Code = 43 });
@@ -123,6 +151,7 @@ namespace NewsAggregation.Services
 
             // Check if the user ip is blocked
             var ip = GetUserIp();
+            var userAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString();
             var ipBlock = _dBContext.ipMitigations.Where(i => i.IpAddress == ip).OrderByDescending(i => i.BlockedUntil).FirstOrDefault();
 
             if (ipBlock != null)
@@ -157,14 +186,24 @@ namespace NewsAggregation.Services
                     .FirstOrDefault();
 
 
-
-
                 if (failedLoginAttempts != null)
                 {
                     failedLoginAttempts.FailedLoginAttempts += 1;
                     failedLoginAttempts.LastFailedLogin = DateTime.UtcNow;
                     _dBContext.accountSecurity.Update(failedLoginAttempts);
                     await _dBContext.SaveChangesAsync();
+
+                    // Add failed login attempt to the AuthLogs table
+
+                    var authLog = new AuthLogs();
+                    authLog.Email = userRequest.Email;
+                    authLog.IpAddress = ip;
+                    authLog.UserAgent = userAgent;
+                    authLog.Date = DateTime.UtcNow;
+                    authLog.Result = "Failed";
+
+                    await _dBContext.authLogs.AddAsync(authLog);
+
 
                     if (failedLoginAttempts.FailedLoginAttempts > 5)
                     {
@@ -204,22 +243,65 @@ namespace NewsAggregation.Services
 
             if (accessToken != null)
             {
+                // Add failed login attempt to the AuthLogs table
 
-                if (user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+                var authLog = new AuthLogs();
+                authLog.Email = userRequest.Email;
+                authLog.IpAddress = ip;
+                authLog.UserAgent = userAgent;
+                authLog.Date = DateTime.UtcNow;
+                authLog.Result = "Success";
+
+                await _dBContext.authLogs.AddAsync(authLog);
+
+                // Check if the user's refresh token has expired
+
+                // Find all refresh tokens for the user
+                var refreshTokens = _dBContext.refreshTokens.Where(r => r.UserId == user.Id).ToList();
+
+                var currentRefreshTokenVersion = user.TokenVersion;
+
+                var found = false;
+
+                // Check if any of the refresh tokens are still active
+                foreach (var token in refreshTokens)
                 {
-                    user.RefreshToken = null;
-                    user.RefreshTokenExpiryTime = DateTime.UtcNow;
-                    _dBContext.Users.Update(user);
-                    await _dBContext.SaveChangesAsync();
+                    if (currentRefreshTokenVersion == token.TokenVersion && token.IsActive && userAgent == token.UserAgent)
+                    {
+                        // If the token is active, update the last used time
+                        token.LastUsed = DateTime.UtcNow;
+                        _dBContext.refreshTokens.Update(token);
+                        await _dBContext.SaveChangesAsync();
+                        found = true;
+                    } 
                 }
 
                 // Generate new refresh token
-                string newRefreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 
-                // Update the user with the new refresh token, expiry time and new token version
-                user.RefreshToken = newRefreshToken;
-                user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-                user.TokenVersion += 1;
+                string newRefreshToken = GenerateRefreshToken();
+
+
+                if (!found)
+                {
+                    // If no active refresh token was found, generate a new one
+                    var refreshToken = new RefreshTokens
+                    {
+                        UserId = user.Id,
+                        Token = newRefreshToken,
+                        Expires = DateTime.UtcNow.AddDays(7),
+                        TokenVersion = user.TokenVersion,
+                        Created = DateTime.UtcNow,
+                        CreatedByIp = ip,
+                        UserAgent = userAgent,
+                        DeviceName = "Unknown"
+                    };
+
+                    _dBContext.refreshTokens.Add(refreshToken);
+                    found = true;
+                    await _dBContext.SaveChangesAsync();
+                }
+
+
                 user.LastLogin = DateTime.UtcNow;
 
                 var oldConIP = user.ConnectingIp;
@@ -265,18 +347,26 @@ namespace NewsAggregation.Services
                 return new UnauthorizedObjectResult(new { Message = "No refresh token found or refresh token has expired.", Code = 40 });
             }
 
-            var user = _dBContext.Users.SingleOrDefault(u => u.RefreshToken == refreshToken);
+            var user = FindUserByRefreshToken(refreshToken, httpContex.Request.Headers["User-Agent"].ToString());
+            var userAgent = httpContex.Request.Headers["User-Agent"].ToString();
 
             if (user == null)
             {
                 return new UnauthorizedObjectResult(new { Message = "Invalid refresh token or refresh token has expired.", Code = 41 });
             }
 
-            user.RefreshToken = null;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow;
+            // Revoke the refresh token
+            var refreshTokenOBJ = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.IsActive);
 
-            _dBContext.Users.Update(user);
-            await _dBContext.SaveChangesAsync();
+            if (refreshTokenOBJ != null)
+            {
+                refreshTokenOBJ.Revoked = DateTime.UtcNow;
+                refreshTokenOBJ.RevokedByIp = GetUserIp();
+                refreshTokenOBJ.UserAgent = userAgent;
+                refreshTokenOBJ.RevocationReason = "User logged out";
+                _dBContext.refreshTokens.Update(refreshTokenOBJ);
+                await _dBContext.SaveChangesAsync();
+            }
 
             SetCookies("");
 
@@ -414,16 +504,42 @@ namespace NewsAggregation.Services
             // Update the user with the new password
             user.Password = newPasswordHashed;
 
-            var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            var refreshToken = GenerateRefreshToken();
 
-            user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-            user.TokenVersion += 1;
+            user.TokenVersion += 1; // Auto invalidates all other tokens
 
+            // Create a new refresh token
+
+            var refreshTokenObj = new RefreshTokens
+            {
+                UserId = user.Id,
+                Token = refreshToken,
+                Expires = DateTime.UtcNow.AddDays(7),
+                TokenVersion = user.TokenVersion,
+                Created = DateTime.UtcNow,
+                CreatedByIp = GetUserIp(),
+                UserAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString(),
+                DeviceName = "Unknown"
+            };
+
+            _dBContext.refreshTokens.Add(refreshTokenObj);
             _dBContext.Users.Update(user);
+
             await _dBContext.SaveChangesAsync();
 
             SetCookies(refreshToken);
+
+            // Add to the PasswordChanges table
+            var passwordChange = new PasswordChanges
+            {
+                UserId = user.Id,
+                IpAddress = GetUserIp(),
+                UserAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString(),
+                Date = DateTime.UtcNow
+            };
+
+            _dBContext.passwordChanges.Add(passwordChange);
+            await _dBContext.SaveChangesAsync();
 
             return new OkObjectResult(new { Message = "Password changed successfully!", Code = 78 });
         }
@@ -444,14 +560,26 @@ namespace NewsAggregation.Services
                 return new UnauthorizedObjectResult(new { Message = "No refresh token found.", Code = 40 });
             }
 
-            var user = _dBContext.Users.SingleOrDefault(u => u.RefreshToken == refreshToken);
+            var user = FindUserByRefreshToken(refreshToken, httpContex.Request.Headers["User-Agent"].ToString());
+
+            // Check to see if the user has logged in successfully before on this device
+            
+            var ip = GetUserIp();
+            var userAgent = httpContex.Request.Headers["User-Agent"].ToString();
+            var authLog = _dBContext.authLogs.Where(a => a.IpAddress == ip && a.UserAgent == userAgent && a.Email == user.Email).OrderByDescending(a => a.Date).FirstOrDefault();
+
+            if (authLog == null)
+            {
+                SetCookies("");
+                return new UnauthorizedObjectResult(new { Message = "No previous login found.", Code = 1000 });
+            }
 
             if (user == null)
             {
                 return new UnauthorizedObjectResult(new { Message = "Invalid refresh token or refresh token has expired.", Code = 41 });
             }
 
-            return new OkObjectResult (new { user.FullName, user.Username, user.Email, user.Role, user.Id });
+            return new OkObjectResult (new { user.FullName, user.Username, user.Email, user.Role, user.Id, user.TimeZone, user.Language, user.IsEmailVerified, user.IsTwoFactorEnabled });
         }
 
 
@@ -468,27 +596,17 @@ namespace NewsAggregation.Services
             }
 
 
-            var user = _dBContext.Users.SingleOrDefault(u => u.RefreshToken == refreshToken);
+            var user = FindUserByRefreshToken(refreshToken, httpContex.Request.Headers["User-Agent"].ToString());
+            var refreshTokenObj = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.IsActive);
 
-            if (user == null || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
+            if (user == null || refreshTokenObj.IsActive == false)
             {
                 return new UnauthorizedObjectResult(new { Message = "Invalid refresh token or refresh token has expired.", Code = 41 });
             }
 
             // Generate new access token
+
             string newAccessToken = CreateAccessToken(user);
-
-            // Generate new refresh token
-            string newRefreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-
-            // Update the user with the new refresh token and expiry time
-            user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-
-            _dBContext.Users.Update(user);
-            await _dBContext.SaveChangesAsync();
-
-            SetCookies(newRefreshToken);
 
             return new OkObjectResult(new
             {
@@ -559,7 +677,6 @@ namespace NewsAggregation.Services
             httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsXyz);
         }
 
-        [NonAction]
         public string GetUserIp()
         {
             var httpContex = _httpContextAccessor.HttpContext;
@@ -578,6 +695,33 @@ namespace NewsAggregation.Services
 
             // If there is no X-Forwarded-For header, fall back to the RemoteIpAddress
             return httpContex.Connection.RemoteIpAddress.ToString();
+        }
+
+        public string GenerateRefreshToken()
+        {
+            DateTime dateTime = DateTime.UtcNow;
+            var rng = RandomNumberGenerator.Create();
+            byte[] randomBytes2 = new byte[64];
+            rng.GetBytes(randomBytes2);
+            string randomString = Convert.ToBase64String(randomBytes2);
+            string dateTimeString = dateTime.ToString("o");
+            string tokenString = randomString + dateTimeString;
+            string newRefreshToken = Convert.ToBase64String(Encoding.UTF8.GetBytes(tokenString));
+            return newRefreshToken;
+        }
+
+        // Find the user by giving a refresh token
+        public User FindUserByRefreshToken(string refreshToken, string userAgent)
+        {
+            var user = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.IsActive && r.UserAgent == userAgent);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            return _dBContext.Users.FirstOrDefault(u => u.Id == user.UserId);
+
         }
 
     }

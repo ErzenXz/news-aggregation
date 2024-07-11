@@ -18,5 +18,6 @@ namespace NewsAggregation.Services.Interfaces
         public string CreateAccessToken(User user);
         public void SetCookies(string refreshToken);
         public string GetUserIp();
+        public string GenerateRefreshToken();
     }
 }

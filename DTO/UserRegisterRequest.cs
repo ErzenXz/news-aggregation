@@ -10,6 +10,8 @@
         public DateTime LastLogin { get; set; }
         public string? ConnectingIp { get; set; }
         public DateTime? Birthdate { get; set; }
-        public string? Role { get; set; }
+        public string? Language { get; set; }
+        public string? TimeZone { get; set; }
+
     }
 }

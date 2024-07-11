@@ -347,7 +347,7 @@ namespace NewsAggregation.Services
                 return new UnauthorizedObjectResult(new { Message = "No refresh token found or refresh token has expired.", Code = 40 });
             }
 
-            var user = FindUserByRefreshToken(refreshToken, httpContex.Request.Headers["User-Agent"].ToString());
+            var user = await FindUserByRefreshToken(refreshToken, httpContex.Request.Headers["User-Agent"].ToString());
             var userAgent = httpContex.Request.Headers["User-Agent"].ToString();
 
             if (user == null)
@@ -560,10 +560,16 @@ namespace NewsAggregation.Services
                 return new UnauthorizedObjectResult(new { Message = "No refresh token found.", Code = 40 });
             }
 
-            var user = FindUserByRefreshToken(refreshToken, httpContex.Request.Headers["User-Agent"].ToString());
+            var user = await FindUserByRefreshToken(refreshToken, httpContex.Request.Headers["User-Agent"].ToString());
+
+            if (user == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "Invalid refresh token or refresh token has expired.", Code = 41 });
+            }
+
 
             // Check to see if the user has logged in successfully before on this device
-            
+
             var ip = GetUserIp();
             var userAgent = httpContex.Request.Headers["User-Agent"].ToString();
             var authLog = _dBContext.authLogs.Where(a => a.IpAddress == ip && a.UserAgent == userAgent && a.Email == user.Email).OrderByDescending(a => a.Date).FirstOrDefault();
@@ -574,10 +580,6 @@ namespace NewsAggregation.Services
                 return new UnauthorizedObjectResult(new { Message = "No previous login found.", Code = 1000 });
             }
 
-            if (user == null)
-            {
-                return new UnauthorizedObjectResult(new { Message = "Invalid refresh token or refresh token has expired.", Code = 41 });
-            }
 
             return new OkObjectResult (new { user.FullName, user.Username, user.Email, user.Role, user.Id, user.TimeZone, user.Language, user.IsEmailVerified, user.IsTwoFactorEnabled });
         }
@@ -596,7 +598,7 @@ namespace NewsAggregation.Services
             }
 
 
-            var user = FindUserByRefreshToken(refreshToken, httpContex.Request.Headers["User-Agent"].ToString());
+            var user = await FindUserByRefreshToken(refreshToken, httpContex.Request.Headers["User-Agent"].ToString());
             var refreshTokenObj = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.IsActive);
 
             if (user == null || refreshTokenObj.IsActive == false)
@@ -711,7 +713,8 @@ namespace NewsAggregation.Services
         }
 
         // Find the user by giving a refresh token
-        public User FindUserByRefreshToken(string refreshToken, string userAgent)
+
+        public async Task<User> FindUserByRefreshToken(string refreshToken, string userAgent)
         {
             var user = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.IsActive && r.UserAgent == userAgent);
 
@@ -720,7 +723,7 @@ namespace NewsAggregation.Services
                 return null;
             }
 
-            return _dBContext.Users.FirstOrDefault(u => u.Id == user.UserId);
+            return _dBContext.Users.FirstOrDefaultAsync(u => u.Id == user.UserId).Result;
 
         }
 

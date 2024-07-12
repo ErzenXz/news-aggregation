@@ -347,7 +347,9 @@ namespace NewsAggregation.Controllers
         [NonAction]
         public User FindUserByRefreshToken(string refreshToken, string userAgent)
         {
-            var user = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.IsActive && r.UserAgent == userAgent);
+            var currentTime = DateTime.UtcNow;
+
+            var user = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.Expires > currentTime && r.UserAgent == userAgent);
 
             if (user == null)
             {

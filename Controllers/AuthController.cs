@@ -14,6 +14,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using NewsAggregation.DTO;
 using NewsAggregation.Services.Interfaces;
+using System.Linq.Expressions;
 
 namespace PersonalPodcast.Controllers
 {
@@ -126,7 +127,12 @@ namespace PersonalPodcast.Controllers
         [HttpGet("info")]
         public async Task<IActionResult> GetUser()
         {
+
+            try
+            {
+
             var user = await _authService.GetUser();
+
             if (user != null)
             {
                 return user;
@@ -134,6 +140,11 @@ namespace PersonalPodcast.Controllers
             else
             {
                 return BadRequest(new { Message = "Error getting user info.", Code = 1000 });
+            }
+            }
+            catch (Exception e)
+            {
+                return BadRequest(new { Message = "Error getting user info. " + e.Message, Code = 1000 });
             }
         }
 

@@ -261,6 +261,8 @@ namespace NewsAggregation.Services
 
                 var currentRefreshTokenVersion = user.TokenVersion;
 
+                string newRefreshToken = GenerateRefreshToken();
+
                 var found = false;
 
                 // Check if any of the refresh tokens are still active
@@ -273,12 +275,9 @@ namespace NewsAggregation.Services
                         _dBContext.refreshTokens.Update(token);
                         await _dBContext.SaveChangesAsync();
                         found = true;
+                        newRefreshToken = token.Token;
                     } 
                 }
-
-                // Generate new refresh token
-
-                string newRefreshToken = GenerateRefreshToken();
 
 
                 if (!found)
@@ -503,6 +502,7 @@ namespace NewsAggregation.Services
 
             // Update the user with the new password
             user.Password = newPasswordHashed;
+            user.PasswordLastChanged = DateTime.UtcNow;
 
             var refreshToken = GenerateRefreshToken();
 
@@ -546,6 +546,7 @@ namespace NewsAggregation.Services
 
         public async Task<IActionResult> GetUser()
         {
+
             var httpContex = _httpContextAccessor.HttpContext;
 
             if (httpContex == null)
@@ -554,13 +555,14 @@ namespace NewsAggregation.Services
             }
 
             var refreshToken = httpContex.Request.Cookies["refreshToken"];
+            var userAgent = httpContex.Request.Headers["User-Agent"].ToString();
 
             if (refreshToken == null)
             {
                 return new UnauthorizedObjectResult(new { Message = "No refresh token found.", Code = 40 });
             }
 
-            var user = await FindUserByRefreshToken(refreshToken, httpContex.Request.Headers["User-Agent"].ToString());
+            var user = await FindUserByRefreshToken(refreshToken, userAgent);
 
             if (user == null)
             {
@@ -571,7 +573,6 @@ namespace NewsAggregation.Services
             // Check to see if the user has logged in successfully before on this device
 
             var ip = GetUserIp();
-            var userAgent = httpContex.Request.Headers["User-Agent"].ToString();
             var authLog = _dBContext.authLogs.Where(a => a.IpAddress == ip && a.UserAgent == userAgent && a.Email == user.Email).OrderByDescending(a => a.Date).FirstOrDefault();
 
             if (authLog == null)
@@ -591,6 +592,8 @@ namespace NewsAggregation.Services
 
 
             var refreshToken = httpContex.Request.Cookies["refreshToken"];
+            var userAgent = httpContex.Request.Headers["User-Agent"].ToString();
+            var currentTime = DateTime.UtcNow;
 
             if (refreshToken == null)
             {
@@ -599,7 +602,7 @@ namespace NewsAggregation.Services
 
 
             var user = await FindUserByRefreshToken(refreshToken, httpContex.Request.Headers["User-Agent"].ToString());
-            var refreshTokenObj = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.IsActive);
+            var refreshTokenObj = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.Expires > currentTime && r.UserAgent == userAgent);
 
             if (user == null || refreshTokenObj.IsActive == false)
             {
@@ -676,7 +679,20 @@ namespace NewsAggregation.Services
                 SameSite = SameSiteMode.None,
                 Domain = ".erzen.xyz"
             };
+
+            // Set cookie for localhost
+            var cookieOptionsLocal = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = DateTime.UtcNow.AddDays(7),
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Domain = "localhost"
+            };
+
             httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsXyz);
+            httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsLocal);
+
         }
 
         public string GetUserIp()
@@ -713,19 +729,23 @@ namespace NewsAggregation.Services
         }
 
         // Find the user by giving a refresh token
-
-        public async Task<User> FindUserByRefreshToken(string refreshToken, string userAgent)
+        public async Task<User?> FindUserByRefreshToken(string refreshToken, string userAgent)
         {
-            var user = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.IsActive && r.UserAgent == userAgent);
+            var currentTime = DateTime.UtcNow;
 
-            if (user == null)
+            var refreshTokenEntry = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.Expires > currentTime && r.UserAgent == userAgent);
+
+            if (refreshTokenEntry == null)
             {
                 return null;
             }
 
-            return _dBContext.Users.FirstOrDefaultAsync(u => u.Id == user.UserId).Result;
+            var userId = refreshTokenEntry.UserId;
+            var user = await _dBContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
 
+            return user;
         }
+
 
     }
 }

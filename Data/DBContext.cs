@@ -30,5 +30,35 @@ namespace NewsAggregation.Data
         public DbSet<PasswordChanges> passwordChanges { get; set; }
         public DbSet<AuthLogs> authLogs { get; set; }
         public DbSet<RefreshTokens> refreshTokens { get; set; }
+
+
+
+
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+
+            modelBuilder.Entity<ArticleTag>()
+                 .HasKey(at => new { at.ArticleId, at.TagId });
+
+            modelBuilder.Entity<ArticleTag>()
+                .HasOne(at => at.Article)
+                .WithMany(a => a.ArticleTags)
+                .HasForeignKey(at => at.ArticleId);
+
+            modelBuilder.Entity<ArticleTag>()
+                .HasOne(at => at.Tag)
+                .WithMany(t => t.ArticleTags)
+                .HasForeignKey(at => at.TagId);
+
+            modelBuilder.Entity<UserPreference>()
+                .HasOne(up => up.Tag)
+                .WithMany(t => t.UserPreferences)
+                .HasForeignKey(up => up.TagId);
+        }
+
     }
+
 }

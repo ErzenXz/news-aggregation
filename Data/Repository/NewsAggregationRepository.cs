@@ -1,4 +1,5 @@
-﻿using System.Linq.Expressions;
+﻿using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace NewsAggregation.Data.Repository
 {
@@ -9,6 +10,11 @@ namespace NewsAggregation.Data.Repository
         public NewsAggregationRepository(DBContext dbContext)
         {
             _dbContext = dbContext;
+        }
+
+        public async Task<Tentity> GetById<TKey>(TKey id)
+        {
+            return await _dbContext.Set<Tentity>().FindAsync(id);
         }
 
         public void Create(Tentity entity)
@@ -42,7 +48,6 @@ namespace NewsAggregation.Data.Repository
         {
             return _dbContext.Set<Tentity>().Where(expression);
         }
-
         public async Task SaveChangesAsync()
         {
             await _dbContext.SaveChangesAsync();
@@ -59,4 +64,3 @@ namespace NewsAggregation.Data.Repository
         }
     }
 }
-

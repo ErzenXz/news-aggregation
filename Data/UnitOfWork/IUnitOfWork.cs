@@ -8,5 +8,6 @@ namespace NewsAggregation.Data.UnitOfWork
         public INewsAggregationRepository<TEntity> Repository<TEntity>() where TEntity : class;
 
         bool Complete();
+        Task<bool> CompleteAsync();
     }
 }

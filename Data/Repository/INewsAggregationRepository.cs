@@ -13,5 +13,6 @@ namespace NewsAggregation.Data.Repository
         void Delete(Tentity entity);
         void DeleteRange(List<Tentity> entity);
         Task SaveChangesAsync();
+        Task<Tentity> GetById<TKey>(TKey id);
     }
 }

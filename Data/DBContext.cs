@@ -15,13 +15,13 @@ namespace NewsAggregation.Data
         }
 
         public DbSet<User> Users { get; set; }
-        public DbSet<Article> Articles { get; set; }
-        public DbSet<Tag> Tags { get; set; }
-        public DbSet<ArticleTag> ArticleTags { get; set; }
-        public DbSet<Category> Categories { get; set; }
-        public DbSet<Comment> Comments { get; set; }
-        public DbSet<Favorite> Favorites { get; set; }
-        public DbSet<UserPreference> UserPreferences { get; set; }
+        //public DbSet<Article> Articles { get; set; }
+        //public DbSet<Tag> Tags { get; set; }
+        //public DbSet<ArticleTag> ArticleTags { get; set; }
+        //public DbSet<Category> Categories { get; set; }
+        //public DbSet<Comment> Comments { get; set; }
+        //public DbSet<Favorite> Favorites { get; set; }
+        //public DbSet<UserPreference> UserPreferences { get; set; }
 
         // Security
         public DbSet<AccountSecurity> accountSecurity { get; set; }
@@ -30,12 +30,13 @@ namespace NewsAggregation.Data
         public DbSet<PasswordChanges> passwordChanges { get; set; }
         public DbSet<AuthLogs> authLogs { get; set; }
         public DbSet<RefreshTokens> refreshTokens { get; set; }
+        public DbSet<VerifyEmail> verifyEmails { get; set; }
 
 
 
 
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        /* protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
@@ -58,6 +59,7 @@ namespace NewsAggregation.Data
                 .WithMany(t => t.UserPreferences)
                 .HasForeignKey(up => up.TagId);
         }
+        */
 
     }
 

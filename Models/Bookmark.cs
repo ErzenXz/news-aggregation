@@ -2,7 +2,7 @@
 
 namespace News_aggregation.Entities
 {
-    public class Favorite
+    public class Bookmark
     {
         public Guid Id { get; set; }
         public Guid UserId { get; set; }

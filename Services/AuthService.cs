@@ -11,6 +11,7 @@ using System.Security.Cryptography;
 using System.Text;
 using NewsAggregation.Data;
 using Microsoft.EntityFrameworkCore;
+using OtpNet;
 
 namespace NewsAggregation.Services
 {
@@ -127,6 +128,10 @@ namespace NewsAggregation.Services
             _dBContext.refreshTokens.Add(refreshTokenObj);
             await _dBContext.SaveChangesAsync();
 
+            // Send verify email to user
+
+            await SendVerifyEmail();
+
             return new OkObjectResult(new { Message = "User registered successfully!", Code = 43 });
         }
 
@@ -226,6 +231,17 @@ namespace NewsAggregation.Services
                 }
                 else
                 {
+                    // Add failed login attempt to the AuthLogs table
+
+                    var authLog = new AuthLogs();
+                    authLog.Email = userRequest.Email;
+                    authLog.IpAddress = ip;
+                    authLog.UserAgent = userAgent;
+                    authLog.Date = DateTime.UtcNow;
+                    authLog.Result = "Failed";
+
+                    await _dBContext.authLogs.AddAsync(authLog);
+
                     AccountSecurity accountSecurity = new AccountSecurity();
                     accountSecurity.UserId = userId;
                     accountSecurity.IpAddress = ip;
@@ -243,7 +259,7 @@ namespace NewsAggregation.Services
 
             if (accessToken != null)
             {
-                // Add failed login attempt to the AuthLogs table
+                // Add success login attempt to the AuthLogs table
 
                 var authLog = new AuthLogs();
                 authLog.Email = userRequest.Email;
@@ -266,6 +282,7 @@ namespace NewsAggregation.Services
                 var found = false;
 
                 // Check if any of the refresh tokens are still active
+
                 foreach (var token in refreshTokens)
                 {
                     if (currentRefreshTokenVersion == token.TokenVersion && token.IsActive && userAgent == token.UserAgent)
@@ -310,7 +327,13 @@ namespace NewsAggregation.Services
                 await _dBContext.SaveChangesAsync();
 
 
-                SetCookies(newRefreshToken);
+                if(user.IsTwoFactorEnabled)
+                {
+                    return new OkObjectResult(new { Message = "MFA is required", Code = 1000 });
+                } else
+                {
+
+                    SetCookies(newRefreshToken);
 
                 if (oldConIP != GetUserIp())
                 {
@@ -324,9 +347,8 @@ namespace NewsAggregation.Services
 <p style=""font-size: 14px;"">PersonalPodcasts</p>
 ");
                 }
-
-
-                return new OkObjectResult(new { Message = "User logged in successfully!", Code = 38, AccessToken = accessToken, newRefreshToken });
+                    return new OkObjectResult(new { Message = "User logged in successfully!", Code = 38, AccessToken = accessToken, newRefreshToken });
+                }
             }
             else
             {
@@ -353,9 +375,10 @@ namespace NewsAggregation.Services
             {
                 return new UnauthorizedObjectResult(new { Message = "Invalid refresh token or refresh token has expired.", Code = 41 });
             }
+            var currentTime = DateTime.UtcNow;
 
             // Revoke the refresh token
-            var refreshTokenOBJ = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.IsActive);
+            var refreshTokenOBJ = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.Expires > currentTime && r.UserAgent == userAgent && r.Revoked == null);
 
             if (refreshTokenOBJ != null)
             {
@@ -463,6 +486,106 @@ namespace NewsAggregation.Services
 
         }
 
+        public async Task<IActionResult> VerifyEmail(string code)
+        {
+            var httpContex = _httpContextAccessor.HttpContext;
+
+            if (httpContex == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "No http context found.", Code = 1000 });
+            }
+
+            var refreshToken = httpContex.Request.Cookies["refreshToken"];
+            var userAgent = httpContex.Request.Headers["User-Agent"].ToString();
+
+            if (refreshToken == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "No refresh token found.", Code = 40 });
+            }
+
+            var user = await FindUserByRefreshToken(refreshToken, userAgent);
+
+            if (user == null)
+            {
+                SetCookies("");
+                return new UnauthorizedObjectResult(new { Message = "Invalid refresh token or refresh token has expired.", Code = 41 });
+            }
+
+            if (user.IsEmailVerified)
+            {
+                return new OkObjectResult(new { Message = "Email is already verified.", Code = 1000 });
+            }
+
+            var currentTime = DateTime.UtcNow; 
+            var verifyEmail = _dBContext.verifyEmails.FirstOrDefault(v => v.Email == user.Email && v.Code == code && v.ValidUntil > currentTime);
+            if (verifyEmail == null)
+            {
+                return new BadRequestObjectResult(new { Message = "Invalid code or code has expired.", Code = 203 });
+            }
+
+            user.IsEmailVerified = true;
+            _dBContext.Users.Update(user);
+            await _dBContext.SaveChangesAsync();
+
+            return new OkObjectResult(new { Message = "Email verified successfully!", Code = 1000 });
+        }
+
+        public async Task<IActionResult> SendVerifyEmail()
+        {
+            var httpContex = _httpContextAccessor.HttpContext;
+
+            if (httpContex == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "No http context found.", Code = 1000 });
+            }
+
+            var refreshToken = httpContex.Request.Cookies["refreshToken"];
+            var userAgent = httpContex.Request.Headers["User-Agent"].ToString();
+
+            if (refreshToken == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "No refresh token found.", Code = 40 });
+            }
+
+            var user = await FindUserByRefreshToken(refreshToken, userAgent);
+
+            if (user == null)
+            {
+                SetCookies("");
+                return new UnauthorizedObjectResult(new { Message = "Invalid refresh token or refresh token has expired.", Code = 41 });
+            }
+
+            if (user.IsEmailVerified)
+            {
+                return new OkObjectResult(new { Message = "Email is already verified.", Code = 1000 });
+            }
+
+            // Generate new code
+            string randomCode = Guid.NewGuid().ToString().Substring(0, 8);
+
+            var verifyEmail = new VerifyEmail
+            {
+                Email = user.Email,
+                Code = randomCode,
+                CreatedDate = DateTime.UtcNow,
+                ValidUntil = DateTime.UtcNow.AddMinutes(15)
+            };
+
+            // Save to DB
+            _dBContext.verifyEmails.Add(verifyEmail);
+            await _dBContext.SaveChangesAsync();
+
+            // Send email with new password
+
+            await _secureMail.SendEmail("njnana2017@gmail.com",user.Email, "Verify Email", $"<h3>Hello {user.FullName}!</h3><br>You have requested to verify your email in PersonalPodcast.<br>Here is your one time verification code: <strong>" + randomCode + "</strong><br>" +
+                               "<p>You can use this link to directly verify your email</p> " +
+                                              $"<a href='https://test.erzen.tk/verify-email?code={randomCode}'>Verify Email</a>" +
+                                                             "Your link will expire in 15 minutes. If you did not request this, please ignore this email.<br>" +
+                                                                            "Thanks!");
+
+            return new OkObjectResult(new { Message = "Email verification code sent successfully!", Code = 1000 });
+        }
+
         public async Task<IActionResult> ChangePassword(ChangePasswordRequest changePasswordRequest)
         {
             if (changePasswordRequest.Email == null || changePasswordRequest.OldPassword == null || changePasswordRequest.NewPassword == null)
@@ -566,6 +689,7 @@ namespace NewsAggregation.Services
 
             if (user == null)
             {
+                SetCookies("");
                 return new UnauthorizedObjectResult(new { Message = "Invalid refresh token or refresh token has expired.", Code = 41 });
             }
 
@@ -582,7 +706,7 @@ namespace NewsAggregation.Services
             }
 
 
-            return new OkObjectResult (new { user.FullName, user.Username, user.Email, user.Role, user.Id, user.TimeZone, user.Language, user.IsEmailVerified, user.IsTwoFactorEnabled });
+            return new OkObjectResult (new { user.FullName, user.Username, user.Email, user.Role,user.ProfilePicture, user.Id, user.TimeZone, user.Language, user.IsEmailVerified, user.IsTwoFactorEnabled });
         }
 
 
@@ -602,7 +726,7 @@ namespace NewsAggregation.Services
 
 
             var user = await FindUserByRefreshToken(refreshToken, httpContex.Request.Headers["User-Agent"].ToString());
-            var refreshTokenObj = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.Expires > currentTime && r.UserAgent == userAgent);
+            var refreshTokenObj = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.Expires > currentTime && r.UserAgent == userAgent && r.Revoked == null);
 
             if (user == null || refreshTokenObj.IsActive == false)
             {
@@ -728,6 +852,255 @@ namespace NewsAggregation.Services
             return newRefreshToken;
         }
 
+        public async Task<IActionResult> SetupMfa(string code = "first")
+        {
+            var refreshToken = _httpContextAccessor.HttpContext.Request.Cookies["refreshToken"];
+            var userAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString();
+
+            var user = await FindUserByRefreshToken(refreshToken, userAgent);
+
+            if (user == null || user.Username == null)
+            {
+                return new NotFoundObjectResult(new {Message = "User not found", Code = 1000});
+            }
+
+
+            if (!user.IsTwoFactorEnabled && code == "first")
+            {
+                var mfaService = new MfaService();
+                var secret = mfaService.GenerateTotpSecret();
+
+                user.TotpSecret = secret;
+
+
+                _dBContext.Users.Update(user);
+                await _dBContext.SaveChangesAsync();
+
+                var otpauth = mfaService.GenerateQrCodeUri(user.Username, secret);
+                var qrCodeImage = mfaService.GenerateQrCodeImage(otpauth);
+
+                // Return as File image qr code
+                return new FileContentResult(qrCodeImage, "image/png");
+
+            } else
+            {
+                // Validate the code and enable MFA
+
+                var secret = user.TotpSecret;
+
+                var totp = new Totp(Base32Encoding.ToBytes(secret));
+                var isValid = totp.VerifyTotp(code, out long timeStepMatched, new VerificationWindow(2, 2));
+
+                if (isValid)
+                {
+                    user.IsTwoFactorEnabled = true;
+                    _dBContext.Users.Update(user);
+                    await _dBContext.SaveChangesAsync();
+
+                    return new OkObjectResult(new { Message = "MFA enabled successfully", Code = 1000 });
+                } else
+                {
+                    return new BadRequestObjectResult(new { Message = "Invalid code", Code = 1000 });
+                }
+
+            }
+
+        }
+
+        public async Task<IActionResult> VerifyMfa(string email, string code)
+        {
+
+            var user = _dBContext.Users.FirstOrDefault(u => u.Email == email);
+
+            if (user == null || user.Username == null)
+            {
+                return new NotFoundObjectResult(new { Message = "User not found", Code = 1000 });
+            }
+
+            var secret = user.TotpSecret;
+
+            var totp = new Totp(Base32Encoding.ToBytes(secret));
+            var isValid = totp.VerifyTotp(code, out long timeStepMatched, new VerificationWindow(2, 2));
+
+            var ip = GetUserIp();
+            var userAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString();
+
+            if (isValid)
+            {
+                var refreshTokens = _dBContext.refreshTokens.Where(r => r.UserId == user.Id).ToList();
+
+                var currentRefreshTokenVersion = user.TokenVersion;
+
+                string newRefreshToken = GenerateRefreshToken();
+
+                var found = false;
+
+                // Check if any of the refresh tokens are still active
+
+                foreach (var token in refreshTokens)
+                {
+                    if (currentRefreshTokenVersion == token.TokenVersion && token.IsActive && userAgent == token.UserAgent)
+                    {
+                        // If the token is active, update the last used time
+                        token.LastUsed = DateTime.UtcNow;
+                        _dBContext.refreshTokens.Update(token);
+                        await _dBContext.SaveChangesAsync();
+                        found = true;
+                        newRefreshToken = token.Token;
+                    }
+                }
+
+
+                if (!found)
+                {
+                    // If no active refresh token was found, generate a new one
+                    var refreshToken = new RefreshTokens
+                    {
+                        UserId = user.Id,
+                        Token = newRefreshToken,
+                        Expires = DateTime.UtcNow.AddDays(7),
+                        TokenVersion = user.TokenVersion,
+                        Created = DateTime.UtcNow,
+                        CreatedByIp = ip,
+                        UserAgent = userAgent,
+                        DeviceName = "Unknown"
+                    };
+
+                    _dBContext.refreshTokens.Add(refreshToken);
+                    found = true;
+                    await _dBContext.SaveChangesAsync();
+                }
+
+                SetCookies(newRefreshToken);
+
+                var accessToken = CreateAccessToken(user);
+
+                return new OkObjectResult(new { Message = "MFA verified successfully", Code = 1000, AccessToken = accessToken, newRefreshToken = newRefreshToken });
+
+            }
+            else
+            {
+                // Check to see if the code is a backup code, if so remove from that string example 421iofjafk,3125klhllh etc
+
+                var backupCodes = user.BackupCodes;
+                var backupCodesArray = backupCodes.Split(',');
+
+                var foundCode = false;
+
+                foreach (var backupCode in backupCodesArray)
+                {
+                    if (backupCode == code)
+                    {
+                        foundCode = true;
+                        break;
+                    }
+                }
+
+                if (!foundCode)
+                {
+                    return new BadRequestObjectResult(new { Message = "Invalid code", Code = 1000 });
+                } 
+                else
+                {
+                    // Remove the code from the backup codes
+                    var newBackupCodes = "";
+
+                    foreach (var backupCode in backupCodesArray)
+                    {
+                        if (backupCode != code)
+                        {
+                            newBackupCodes += backupCode + ",";
+                        }
+                    }
+
+                    user.BackupCodes = newBackupCodes;
+
+                    _dBContext.Users.Update(user);
+                    await _dBContext.SaveChangesAsync();
+
+                    var refreshTokens = _dBContext.refreshTokens.Where(r => r.UserId == user.Id).ToList();
+
+                    var currentRefreshTokenVersion = user.TokenVersion;
+
+                    string newRefreshToken = GenerateRefreshToken();
+
+                    var found = false;
+
+                    // Check if any of the refresh tokens are still active
+
+                    foreach (var token in refreshTokens)
+                    {
+                        if (currentRefreshTokenVersion == token.TokenVersion && token.IsActive && userAgent == token.UserAgent)
+                        {
+                            // If the token is active, update the last used time
+                            token.LastUsed = DateTime.UtcNow;
+                            _dBContext.refreshTokens.Update(token);
+                            await _dBContext.SaveChangesAsync();
+                            found = true;
+                            newRefreshToken = token.Token;
+                        }
+                    }
+
+
+                    if (!found)
+                    {
+                        // If no active refresh token was found, generate a new one
+                        var refreshToken = new RefreshTokens
+                        {
+                            UserId = user.Id,
+                            Token = newRefreshToken,
+                            Expires = DateTime.UtcNow.AddDays(7),
+                            TokenVersion = user.TokenVersion,
+                            Created = DateTime.UtcNow,
+                            CreatedByIp = ip,
+                            UserAgent = userAgent,
+                            DeviceName = "Unknown"
+                        };
+
+                        _dBContext.refreshTokens.Add(refreshToken);
+                        found = true;
+                        await _dBContext.SaveChangesAsync();
+                    }
+
+                    SetCookies(newRefreshToken);
+
+                    var accessToken = CreateAccessToken(user);
+
+                    return new OkObjectResult(new { Message = "MFA verified successfully", Code = 1000, AccessToken = accessToken, newRefreshToken = newRefreshToken });
+                }
+            }
+
+        }
+
+        public async Task<IActionResult> GenerateBackupCodes()
+        {
+            var refreshToken = _httpContextAccessor.HttpContext.Request.Cookies["refreshToken"];
+            var userAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString();
+
+            var user = await FindUserByRefreshToken(refreshToken, userAgent);
+
+            if (user == null || user.Username == null)
+            {
+                return new NotFoundObjectResult(new { Message = "User not found", Code = 1000 });
+            }
+
+            if (!user.IsTwoFactorEnabled)
+            {
+                return new BadRequestObjectResult(new { Message = "MFA is not enabled", Code = 1000 });
+            }
+
+            var mfaService = new MfaService();
+            var backupCodes = mfaService.GenerateBackupCodes();
+
+            user.BackupCodes = backupCodes;
+
+            _dBContext.Users.Update(user);
+            await _dBContext.SaveChangesAsync();
+
+            return new OkObjectResult(new { Message = "Backup codes generated successfully", Code = 1000, BackupCodes = backupCodes });
+        }
+
+
         // Find the user by giving a refresh token
         public async Task<User?> FindUserByRefreshToken(string refreshToken, string userAgent)
         {
@@ -741,7 +1114,19 @@ namespace NewsAggregation.Services
             }
 
             var userId = refreshTokenEntry.UserId;
+            var refreshTokenVersion = refreshTokenEntry.TokenVersion;
+
             var user = await _dBContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            if (user.TokenVersion != refreshTokenVersion)
+            {
+                return null;
+            }
 
             return user;
         }

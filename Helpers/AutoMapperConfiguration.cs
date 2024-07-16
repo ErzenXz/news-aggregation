@@ -17,22 +17,15 @@ public class AutoMapperConfiguration : Profile
         CreateMap<Article, ArticleDto>().ReverseMap();
         CreateMap<Article, ArticleCreateDto>().ReverseMap();
 
-        CreateMap<ArticleTag, ArticleTagDto>().ReverseMap();
-        CreateMap<ArticleTag, ArticleTagCreateDto>().ReverseMap();
-
         CreateMap<Category, CategoryDto>().ReverseMap();
         CreateMap<Category, CategoryCreateDto>().ReverseMap();
 
         CreateMap<Comment, CommentDto>().ReverseMap();
         CreateMap<Comment, CommentCreateDto>().ReverseMap();
 
-        CreateMap<Favorite, FavoriteDto>().ReverseMap();
-        CreateMap<Favorite, FavoriteCreateDto>().ReverseMap();
+        CreateMap<Bookmark, FavoriteDto>().ReverseMap();
+        CreateMap<Bookmark, FavoriteCreateDto>().ReverseMap();
 
-        CreateMap<Tag, TagDto>().ReverseMap();
-        CreateMap<Tag, TagCreateDto>().ReverseMap();
 
-        CreateMap<UserPreference, UserPreferencesDto>().ReverseMap();
-        CreateMap<UserPreference, UserPreferencesCreateDto>().ReverseMap();
     }
 }

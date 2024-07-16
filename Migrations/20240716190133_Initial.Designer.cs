@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NewsAggregation.Migrations
 {
     [DbContext(typeof(DBContext))]
-    [Migration("20240708152857_Initial")]
+    [Migration("20240716190133_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -53,6 +53,32 @@ namespace NewsAggregation.Migrations
                     b.ToTable("accountSecurity");
                 });
 
+            modelBuilder.Entity("NewsAggregation.Models.Security.AuthLogs", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Result")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("authLogs");
+                });
+
             modelBuilder.Entity("NewsAggregation.Models.Security.IpMitigations", b =>
                 {
                     b.Property<long>("Id")
@@ -71,6 +97,81 @@ namespace NewsAggregation.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ipMitigations");
+                });
+
+            modelBuilder.Entity("NewsAggregation.Models.Security.PasswordChanges", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("passwordChanges");
+                });
+
+            modelBuilder.Entity("NewsAggregation.Models.Security.RefreshTokens", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByIp")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeviceName")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Expires")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastUsed")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RevocationReason")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("Revoked")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RevokedByIp")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TokenVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UserAgent")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("refreshTokens");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Security.ResetEmail", b =>
@@ -112,6 +213,9 @@ namespace NewsAggregation.Migrations
                     b.Property<string>("ConnectingIp")
                         .HasColumnType("text");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Email")
                         .HasColumnType("text");
 
@@ -121,23 +225,41 @@ namespace NewsAggregation.Migrations
                     b.Property<string>("FullName")
                         .HasColumnType("text");
 
+                    b.Property<bool>("IsEmailVerified")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsTwoFactorEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Language")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("LastLogin")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Password")
                         .HasColumnType("text");
 
-                    b.Property<string>("RefreshToken")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("RefreshTokenExpiryTime")
+                    b.Property<DateTime?>("PasswordLastChanged")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProfilePicture")
+                        .HasColumnType("text");
 
                     b.Property<string>("Role")
                         .HasColumnType("text");
 
+                    b.Property<string>("TimeZone")
+                        .HasColumnType("text");
+
                     b.Property<int>("TokenVersion")
                         .HasColumnType("integer");
+
+                    b.Property<string>("TotpSecret")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Username")
                         .HasColumnType("text");
@@ -156,6 +278,33 @@ namespace NewsAggregation.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("NewsAggregation.Models.Security.PasswordChanges", b =>
+                {
+                    b.HasOne("NewsAggregation.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("NewsAggregation.Models.Security.RefreshTokens", b =>
+                {
+                    b.HasOne("NewsAggregation.Models.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("NewsAggregation.Models.User", b =>
+                {
+                    b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618
         }

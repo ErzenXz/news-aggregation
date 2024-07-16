@@ -23,6 +23,11 @@ namespace NewsAggregation.Models
         public DateTime? PasswordLastChanged { get; set; }
         public bool IsTwoFactorEnabled { get; set; }
 
+        public string? TotpSecret { get; set; }
+        public string? BackupCodes { get; set; }
+
+
+
         // Personalization
         public string? TimeZone { get; set; } 
         public string? Language { get; set; } 

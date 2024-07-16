@@ -42,6 +42,7 @@ namespace PersonalPodcast.Controllers
             var response = await _authService.Register(userRequest);
             if (response != null)
             {
+                await _authService.GenerateBackupCodes();
                 return response;
             }
             else
@@ -123,11 +124,51 @@ namespace PersonalPodcast.Controllers
             }
         }
 
+        [HttpPost("setup-mfa"), Authorize(Roles = "User,Admin,SuperAdmin")]
+        public async Task<IActionResult> SetupMfa(string code = "first")
+        {
+            var response = await _authService.SetupMfa(code);
+            if (response != null)
+            {
+                return response;
+            }
+            else
+            {
+                return BadRequest(new { Message = "Error setting up MFA.", Code = 1000 });
+            }
+        }
+
+        [HttpPost("verify-mfa")]
+        public async Task<IActionResult> VerifyMfa(string email, string code)
+        {
+            var response = await _authService.VerifyMfa(email,code);
+            if (response != null)
+            {
+                return response;
+            }
+            else
+            {
+                return BadRequest(new { Message = "Error verifying MFA.", Code = 1000 });
+            }
+        }
+
+        [HttpPost("generate-backup-codes"), Authorize(Roles = "User,Admin,SuperAdmin")]
+        public async Task<IActionResult> GenerateBackupCodes()
+        {
+            var response = await _authService.GenerateBackupCodes();
+            if (response != null)
+            {
+                return response;
+            }
+            else
+            {
+                return BadRequest(new { Message = "Error generating backup codes.", Code = 1000 });
+            }
+        }
 
         [HttpGet("info")]
         public async Task<IActionResult> GetUser()
         {
-
             try
             {
 

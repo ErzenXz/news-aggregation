@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NewsAggregation.Migrations
 {
     [DbContext(typeof(DBContext))]
-    [Migration("20240711231435_Updated Auth Security")]
-    partial class UpdatedAuthSecurity
+    [Migration("20240716193928_Added backup codes for mfa")]
+    partial class Addedbackupcodesformfa
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -207,6 +207,9 @@ namespace NewsAggregation.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("BackupCodes")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("Birthdate")
                         .HasColumnType("timestamp with time zone");
 
@@ -254,6 +257,9 @@ namespace NewsAggregation.Migrations
 
                     b.Property<int>("TokenVersion")
                         .HasColumnType("integer");
+
+                    b.Property<string>("TotpSecret")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

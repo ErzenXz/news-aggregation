@@ -204,6 +204,9 @@ namespace NewsAggregation.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("BackupCodes")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("Birthdate")
                         .HasColumnType("timestamp with time zone");
 
@@ -251,6 +254,9 @@ namespace NewsAggregation.Migrations
 
                     b.Property<int>("TokenVersion")
                         .HasColumnType("integer");
+
+                    b.Property<string>("TotpSecret")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

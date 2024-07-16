@@ -116,6 +116,60 @@ namespace NewsAggregation.Controllers
         }
 
 
+        // Get active sessions for a user
+        [HttpGet("active-sessions"),
+            Authorize(Roles = "User,Admin,SuperAdmin")]
+        public async Task<IActionResult> GetActiveSessions()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+
+            if (refreshToken == null)
+            {
+                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
+            }
+
+            var user = FindUserByRefreshToken(refreshToken, Request.Headers[HeaderNames.UserAgent].ToString());
+
+            if (user == null)
+            {
+                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
+            }
+
+            var currentTime = DateTime.UtcNow;
+
+            // Find all refresh tokens for the user
+            var refreshTokens = _dBContext.refreshTokens.Where(r => r.UserId == user.Id).ToList();
+
+            var currentRefreshTokenVersion = user.TokenVersion;
+
+            var activeSessions = new List<ActiveSession>();
+
+            // Check if any of the refresh tokens are still active
+
+            foreach (var token in refreshTokens)
+            {
+                if (currentRefreshTokenVersion == token.TokenVersion && token.IsActive)
+                {
+                    // If the token is active, add it to the list
+                    activeSessions.Add(new ActiveSession
+                    {
+                        Id = token.Id,
+                        CreatedAt = token.Created,
+                        Expires = token.Expires,
+                        UserAgent = token.UserAgent,
+                        IpAddress = token.CreatedByIp,
+                        IsActive = token.IsActive
+                    });
+                }
+            }
+
+            // Add Content-Range header
+            Response.Headers.Add("Content-Range", $"active-sessions 0-0/{activeSessions.Count}");
+
+            return Ok(activeSessions);
+
+        }
+
         [HttpPut("{id}"),Authorize(Roles ="User,Admin,SuperAdmin")]
         public async Task<IActionResult> UpdateUser(UserUpdateRequest userUpdateRequest)
         {

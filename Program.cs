@@ -14,6 +14,8 @@ using ServiceStack;
 using Swashbuckle.AspNetCore.Filters;
 using System.Configuration;
 using System.Text;
+using AutoMapper;
+using NewsAggregation.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +34,10 @@ builder.Services.AddCors(options =>
     });
 });
 
+var mapperConfiguration = new MapperConfiguration(
+    mc => mc.AddProfile(new AutoMapperConfiguration()));
+
+IMapper mapper = mapperConfiguration.CreateMapper();
 
 builder.WebHost.ConfigureKestrel(serverOptions =>
 {

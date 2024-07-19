@@ -1,16 +1,22 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using NewsAggregation.Data;
+using NewsAggregation.Services.ServiceJobs;
 
 public class BackgroundNotificationService : BackgroundService
 {
     private readonly ILogger<BackgroundNotificationService> _logger;
     private Timer _timer;
     private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IHubContext<NotificationHub> _hubContext;
 
-    public BackgroundNotificationService(ILogger<BackgroundNotificationService> logger, IServiceScopeFactory serviceScopeFactory)
+
+    public BackgroundNotificationService(ILogger<BackgroundNotificationService> logger, IServiceScopeFactory serviceScopeFactory, IHubContext<NotificationHub> hubContext)
     {
         _logger = logger;
         _serviceScopeFactory = serviceScopeFactory;
+        _hubContext = hubContext;
+
     }
 
     private async void DoWork(object state)
@@ -18,11 +24,21 @@ public class BackgroundNotificationService : BackgroundService
         using (var scope = _serviceScopeFactory.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<DBContext>();
-            var users = await dbContext.Users.ToListAsync();
-            foreach (var user in users)
+            var notifications = await dbContext.Notifications.Where(n => !n.IsRead).ToListAsync();
+
+            foreach (var notification in notifications)
             {
-                _logger.LogInformation($"User: {user.Username}");
+                // Send notification via SignalR
+                await _hubContext.Clients.All.SendAsync("ReceiveNotification", notification);
+
+                // Log the notification
+                _logger.LogInformation($"Notification sent: {notification.Content}");
+
+                // Mark notification as read
+                notification.IsRead = true;
             }
+
+            await dbContext.SaveChangesAsync();
         }
     }
 
@@ -31,7 +47,7 @@ public class BackgroundNotificationService : BackgroundService
     {
         _logger.LogInformation("[x] Background Notification Service is starting.");
 
-        _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMinutes(10));
+        _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
 
         await Task.Delay(Timeout.Infinite, stoppingToken);
     }

@@ -5,8 +5,6 @@ using NewsAggregation.DTO.ArticleTag;
 using NewsAggregation.DTO.Category;
 using NewsAggregation.DTO.Comment;
 using NewsAggregation.DTO.Favorite;
-using NewsAggregation.DTO.Tag;
-using NewsAggregation.DTO.UserPreferences;
 
 namespace NewsAggregation.Helpers;
 
@@ -25,6 +23,8 @@ public class AutoMapperConfiguration : Profile
 
         CreateMap<Bookmark, FavoriteDto>().ReverseMap();
         CreateMap<Bookmark, FavoriteCreateDto>().ReverseMap();
+
+
 
 
     }

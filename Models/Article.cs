@@ -1,13 +1,15 @@
 ﻿using NewsAggregation.Models;
 using System.ComponentModel.DataAnnotations.Schema;
+using NewsAggregation.Models.Stats;
 
 namespace News_aggregation.Entities
 {
     public class Article
     {
         public Guid Id { get; set; }
+
+        public Guid AuthorId { get; set; }
         [ForeignKey("AuthorId")]
-        public string AuthorId { get; set; }
         public User Author { get; set; }
 
         public string Title { get; set; }
@@ -15,13 +17,17 @@ namespace News_aggregation.Entities
         public string Description { get; set; }
 
         public string ImageUrl { get; set; }
-        public string SourceUrl { get; set; }
+
+        public Guid SourceId { get; set; }
+        [ForeignKey("SourceId")]
+        public Source Source { get; set; }
 
         public DateTime PublishedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
         public int CategoryId { get; set; }
+        [ForeignKey("CategoryId")]
         public Category Category { get; set; }
 
         public string Tags { get; set; }
@@ -34,7 +40,8 @@ namespace News_aggregation.Entities
 
 
         public ICollection<Comment> Comments { get; set; }
-        public ICollection<Bookmark> Bookmarks { get; set; }
+        public ICollection<ArticleStats> ArticleStats { get; set; }
+
 
     }
 }

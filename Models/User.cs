@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using News_aggregation.Entities;
 using NewsAggregation.Models.Security;
+using NewsAggregation.Models.Stats;
 
 namespace NewsAggregation.Models
 {
@@ -30,9 +32,14 @@ namespace NewsAggregation.Models
 
         // Personalization
         public string? TimeZone { get; set; } 
-        public string? Language { get; set; } 
+        public string? Language { get; set; }
+
 
         public ICollection<RefreshTokens> RefreshTokens { get; set; } = new List<RefreshTokens>();
+        public ICollection<Subscriptions> Subscriptions { get; set; } = new List<Subscriptions>();
+        //public ICollection<Bookmark> Bookmarks { get; set; } = new List<Bookmark>();
+
+
 
         // For Auditing
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

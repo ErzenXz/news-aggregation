@@ -4,24 +4,30 @@ using NewsAggregation.Models.Security;
 using System.Collections.Generic;
 using System.Xml.Linq;
 using News_aggregation.Entities;
+using NewsAggregation.Models.Stats;
 
 
 namespace NewsAggregation.Data
 {
     public class DBContext : DbContext
     {
-        public DBContext(DbContextOptions options) : base(options)
-        {
-        }
+        public DBContext(DbContextOptions options) : base(options) {}
 
         public DbSet<User> Users { get; set; }
-        //public DbSet<Article> Articles { get; set; }
-        //public DbSet<Tag> Tags { get; set; }
-        //public DbSet<ArticleTag> ArticleTags { get; set; }
-        //public DbSet<Category> Categories { get; set; }
-        //public DbSet<Comment> Comments { get; set; }
-        //public DbSet<Favorite> Favorites { get; set; }
-        //public DbSet<UserPreference> UserPreferences { get; set; }
+        public DbSet<Article> Articles { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<Comment> Comments { get; set; }
+        public DbSet<UserPreference> UserPreferences { get; set; }
+        public DbSet<Source> Sources { get; set; }
+        public DbSet<ArticleStats> ArticleStats { get; set; }
+        public DbSet<Bookmark> Bookmarks { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<Payment> Payments { get; set; }
+        public DbSet<Ads> Ads { get; set; }
+        public DbSet<Plans> Plans { get; set; }
+        public DbSet<Subscriptions> Subscriptions { get; set; }
+
+
 
         // Security
         public DbSet<AccountSecurity> accountSecurity { get; set; }
@@ -36,30 +42,19 @@ namespace NewsAggregation.Data
 
 
 
-        /* protected override void OnModelCreating(ModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
+            modelBuilder.Entity<User>().HasIndex(u => u.Username).IsUnique();
+            modelBuilder.Entity<User>().HasIndex(u => u.Id).IsUnique();
+            modelBuilder.Entity<User>().HasIndex(u => u.TotpSecret).IsUnique();
 
-            modelBuilder.Entity<ArticleTag>()
-                 .HasKey(at => new { at.ArticleId, at.TagId });
+           // modelBuilder.Entity<UserPreference>().HasIndex(u => u.UserId).IsUnique();
+           // modelBuilder.Entity<UserPreference>().HasIndex(u => u.Id).IsUnique();
 
-            modelBuilder.Entity<ArticleTag>()
-                .HasOne(at => at.Article)
-                .WithMany(a => a.ArticleTags)
-                .HasForeignKey(at => at.ArticleId);
-
-            modelBuilder.Entity<ArticleTag>()
-                .HasOne(at => at.Tag)
-                .WithMany(t => t.ArticleTags)
-                .HasForeignKey(at => at.TagId);
-
-            modelBuilder.Entity<UserPreference>()
-                .HasOne(up => up.Tag)
-                .WithMany(t => t.UserPreferences)
-                .HasForeignKey(up => up.TagId);
         }
-        */
 
     }
 

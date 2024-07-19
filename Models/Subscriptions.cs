@@ -11,5 +11,8 @@
         public DateTime EndDate { get; set; }
         public decimal Amount { get; set; }
         public string Currency { get; set; }
+
+        ICollection<Payment> Payments { get; set; }
+
     }
 }

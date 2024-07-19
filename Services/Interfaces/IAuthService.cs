@@ -11,7 +11,7 @@ namespace NewsAggregation.Services.Interfaces
         public Task<IActionResult> Register(UserRegisterRequest userRequest);
         public Task<IActionResult> RefreshToken();
         public Task<IActionResult> Logout();
-        public Task<IActionResult> ForgotPassword(UserRequest userRequest, string? emailRq, string? code, int? verifyRequest);
+        public Task<IActionResult> ForgotPassword(string? email, string? code);
         public Task<IActionResult> ChangePassword(ChangePasswordRequest changePasswordRequest);
         public Task<IActionResult> VerifyEmail(string code);
         public Task<IActionResult> SendVerifyEmail();

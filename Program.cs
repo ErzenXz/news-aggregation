@@ -50,8 +50,12 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IAuthService, AuthService>();
 //builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
-
-
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IPlansService, PlansService>();
+builder.Services.AddScoped<IAdsService, AdsService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<ISubscriptionsService, SubscriptionsService>();
+builder.Services.AddScoped<ISourceService, SourceService>();
 
 
 builder.Services.AddControllers();

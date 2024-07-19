@@ -132,6 +132,7 @@ namespace NewsAggregation.Services
 
             await SendVerifyEmail();
 
+
             return new OkObjectResult(new { Message = "User registered successfully!", Code = 43 });
         }
 
@@ -395,12 +396,12 @@ namespace NewsAggregation.Services
             return new OkObjectResult(new { Message = "User logged out successfully!", Code = 42 });
         }
 
-        public async Task<IActionResult> ForgotPassword(UserRequest userRequest, string? emailRq, string? code, int? verifyRequest)
+        public async Task<IActionResult> ForgotPassword(string? email, string? code = "request")
         {
 
-            if (verifyRequest == 777)
+            if (code != "request")
             {
-                var resetEmail = _dBContext.resetEmails.FirstOrDefault(r => r.Email == emailRq && r.Code == code.ToString());
+                var resetEmail = _dBContext.resetEmails.FirstOrDefault(r => r.Email == email && r.Code == code.ToString());
                 if (resetEmail == null)
                 {
                     return new BadRequestObjectResult(new { Message = "Invalid code.", Code = 46 });
@@ -417,7 +418,7 @@ namespace NewsAggregation.Services
                 // Hash the new password
                 string newPasswordHashed = BCrypt.Net.BCrypt.HashPassword(newPassword);
 
-                var user2 = _dBContext.Users.FirstOrDefault(u => u.Email == emailRq);
+                var user2 = _dBContext.Users.FirstOrDefault(u => u.Email == email);
 
                 if (user2 == null)
                 {
@@ -429,7 +430,7 @@ namespace NewsAggregation.Services
                 _dBContext.Users.Update(user2);
                 await _dBContext.SaveChangesAsync();
 
-                await _secureMail.SendEmail("njnana2017@gmail.com", emailRq, "New Password", "<h1>Hello!</h1><br>You have requested to reset your password in PersonalPodcast.<br>Here is your new password: <strong>" + newPassword + "</strong><br>Thanks!");
+                await _secureMail.SendEmail("njnana2017@gmail.com", email, "New Password", "<h1>Hello!</h1><br>You have requested to reset your password in PersonalPodcast.<br>Here is your new password: <strong>" + newPassword + "</strong><br>Thanks!");
 
 
                 return new OkObjectResult(new { Message = $"Here is your new generated password: {newPassword}, It was also send via email.", Code = 69 });
@@ -438,18 +439,18 @@ namespace NewsAggregation.Services
             else
             {
 
-                if (userRequest.Email == null)
+                if (email == null)
                 {
                     return new BadRequestObjectResult(new { Message = "Email is required.", Code = 1 });
                 }
 
-                if (userRequest.Email.Length < 5 || userRequest.Email.Length > 100)
+                if (email.Length < 5 || email.Length > 100)
                 {
                     return new BadRequestObjectResult(new { Message = "Email must be between 5 and 100 characters.", Code = 3 });
                 }
 
                 // Check if user exists in database
-                var user = _dBContext.Users.FirstOrDefault(u => u.Email == userRequest.Email);
+                var user = _dBContext.Users.FirstOrDefault(u => u.Email == email);
                 if (user == null)
                 {
                     return new BadRequestObjectResult(new { Message = "User not found.", Code = 36 });
@@ -461,7 +462,7 @@ namespace NewsAggregation.Services
 
                 var emailResetOp = new ResetEmail
                 {
-                    Email = userRequest.Email,
+                    Email = email,
                     Code = randomCode,
                     CreatedDate = DateTime.UtcNow,
                     ValidUntil = DateTime.UtcNow.AddMinutes(15)
@@ -481,7 +482,7 @@ namespace NewsAggregation.Services
                     "Thanks!");
 
 
-                return new BadRequestObjectResult(new { Message = "A code was send to your email. ", Code = 68 });
+                return new OkObjectResult(new { Message = "A code was send to your email. ", Code = 68 });
             }
 
         }
@@ -561,7 +562,7 @@ namespace NewsAggregation.Services
             }
 
             // Generate new code
-            string randomCode = Guid.NewGuid().ToString().Substring(0, 8);
+            var randomCode = Guid.NewGuid().ToString().Substring(0, 8);
 
             var verifyEmail = new VerifyEmail
             {
@@ -893,11 +894,17 @@ namespace NewsAggregation.Services
 
                 if (isValid)
                 {
+                    // Generate backup codes
+
+                    var mfaService = new MfaService();
+                    var backupCodes = mfaService.GenerateBackupCodes();
+
+                    user.BackupCodes = backupCodes;
                     user.IsTwoFactorEnabled = true;
                     _dBContext.Users.Update(user);
                     await _dBContext.SaveChangesAsync();
 
-                    return new OkObjectResult(new { Message = "MFA enabled successfully", Code = 1000 });
+                    return new OkObjectResult(new { Message = "MFA enabled successfully", Codes = backupCodes, Code = 1000 });
                 } else
                 {
                     return new BadRequestObjectResult(new { Message = "Invalid code", Code = 1000 });
@@ -1130,7 +1137,6 @@ namespace NewsAggregation.Services
 
             return user;
         }
-
 
     }
 }

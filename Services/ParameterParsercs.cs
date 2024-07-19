@@ -41,6 +41,16 @@
                 }
             }
 
+            // If they are not valid, reset to default values
+
+            if (parameters.Range == null || parameters.Range[0] < 0 || parameters.Range[1] < 0 ||
+                parameters.PerPage < 1 || parameters.Page < 1)
+            {
+                parameters.Range = null;
+                parameters.PerPage = 10;
+                parameters.Page = 1;
+            }
+
             return parameters;
         }
     }

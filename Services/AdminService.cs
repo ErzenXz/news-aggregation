@@ -267,7 +267,7 @@ namespace NewsAggregation.Services
             var serverInfo = new
             {
                 ServerName = Environment.MachineName,
-                ServerTime = DateTime.Now,
+                ServerTime = DateTime.UtcNow,
                 ServerTimeZone = TimeZoneInfo.Local.DisplayName,
                 ServerOS = Environment.OSVersion.VersionString,
                 ServerFramework = RuntimeInformation.FrameworkDescription,

@@ -70,10 +70,10 @@ public class CommentService : ICommentService
         _unitOfWork.Complete();
     }
 
-    public async Task UpdateComment(CommentDto comment)
+    public async Task UpdateComment(Guid id, CommentDto comment)
     {
         var commentToUpdate =
-            await _unitOfWork.Repository<Comment>().GetByCondition(x => x.Id == comment.Id).FirstOrDefaultAsync();
+            await _unitOfWork.Repository<Comment>().GetByCondition(x => x.Id == id).FirstOrDefaultAsync();
 
         if (comment != null)
         {

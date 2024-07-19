@@ -16,6 +16,7 @@ using System.Configuration;
 using System.Text;
 using AutoMapper;
 using NewsAggregation.Helpers;
+using NewsAggregation.Services.ServiceJobs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,6 +58,14 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ISubscriptionsService, SubscriptionsService>();
 builder.Services.AddScoped<ISourceService, SourceService>();
 
+builder.Services.AddSignalR();
+
+// Add Notification Hub and map it to /notification
+
+//builder.Services.AddSignalR().AddHubOptions<NotificationHub>(options =>
+//{
+//    options.EnableDetailedErrors = true;
+//});
 
 builder.Services.AddControllers();
 
@@ -123,7 +132,6 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
 });
 
-
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -138,8 +146,17 @@ app.UseHttpsRedirection();
 
 app.UseCors("AllowedOrigins");
 
-app.UseAuthorization();
+
 
 app.MapControllers();
+
+app.UseRouting();
+
+app.UseAuthorization();
+
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapHub<NotificationHub>("/notifications");
+});
 
 app.Run();

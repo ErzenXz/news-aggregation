@@ -95,18 +95,12 @@ namespace PersonalPodcast.Controllers
         }
 
         [HttpPost("forgot-password")]
-        public async Task<IActionResult> ForgotPassword(UserRequest userRequest, string? emailRq, string? code, int? verifyRequest)
+        public async Task<IActionResult> ForgotPassword( string? email, string? code = "request")
         {
 
-           var response = await _authService.ForgotPassword(userRequest, emailRq, code, verifyRequest);
-            if (response != null)
-            {
-                return response;
-            }
-            else
-            {
-                return BadRequest(new { Message = "Error sending password reset email.", Code = 46 });
-            }
+           var response = await _authService.ForgotPassword( email, code);
+
+           return response;
 
         }
 
@@ -122,6 +116,15 @@ namespace PersonalPodcast.Controllers
             {
                 return BadRequest(new { Message = "Error changing password.", Code = 1000 });
             }
+        }
+
+        [HttpPost("verify-email")]
+        public async Task<IActionResult> VerifyEmail(string code)
+        {
+            var response = await _authService.VerifyEmail(code);
+
+            return response;
+
         }
 
         [HttpPost("setup-mfa"), Authorize(Roles = "User,Admin,SuperAdmin")]

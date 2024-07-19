@@ -1,18 +1,14 @@
-﻿namespace NewsAggregation.Models
+﻿using NewsAggregation.Models;
+
+namespace NewsAggregation.DTO.Subscriptions
 {
-    public class Subscriptions
+    public class SubscriptionCreateDto
     {
-        public Guid Id { get; set; }
         public Guid UserId { get; set; }
-        public User User { get; set; }
         public Guid PlanId { get; set; }
-        public Plans Plan { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public decimal Amount { get; set; }
         public string Currency { get; set; }
-
-        ICollection<Payment> Payments { get; set; }
-
     }
 }

@@ -65,6 +65,9 @@ builder.Services.AddSignalR(hubOptions =>
     hubOptions.HandshakeTimeout = TimeSpan.FromSeconds(30);
 });
 
+builder.Services.AddControllers().AddNewtonsoftJson();
+builder.Services.AddSingleton<RssService>();
+
 // Add Notification Hub and map it to /notification
 
 //builder.Services.AddSignalR().AddHubOptions<NotificationHub>(options =>

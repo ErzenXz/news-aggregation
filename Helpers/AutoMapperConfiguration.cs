@@ -13,7 +13,10 @@ public class AutoMapperConfiguration : Profile
     public AutoMapperConfiguration()
     {
         CreateMap<Article, ArticleDto>().ReverseMap();
+
         CreateMap<Article, ArticleCreateDto>().ReverseMap();
+
+        CreateMap<Article, ArticleUpdateDto>().ReverseMap();
 
         CreateMap<Category, CategoryDto>().ReverseMap();
         CreateMap<Category, CategoryCreateDto>().ReverseMap();

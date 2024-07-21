@@ -17,6 +17,7 @@ using System.Text;
 using AutoMapper;
 using NewsAggregation.Helpers;
 using NewsAggregation.Services.ServiceJobs;
+using NewsAggregation.Data.UnitOfWork;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,6 +49,8 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 
 builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddAutoMapper(typeof(AutoMapperConfiguration));
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 //builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
@@ -57,6 +60,8 @@ builder.Services.AddScoped<IAdsService, AdsService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ISubscriptionsService, SubscriptionsService>();
 builder.Services.AddScoped<ISourceService, SourceService>();
+builder.Services.AddScoped<IUnitOfWork,UnitOfWork>();
+builder.Services.AddScoped<IArticleService, ArticleService>();
 
 builder.Services.AddSignalR(hubOptions =>
 {

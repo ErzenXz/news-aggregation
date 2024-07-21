@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using News_aggregation.Entities;
 using NewsAggregation.Data.UnitOfWork;
 using NewsAggregation.DTO.Article;
+using NewsAggregation.Helpers;
 using NewsAggregation.Services.Interfaces;
 using System;
 using System.Threading.Tasks;
@@ -140,6 +141,33 @@ namespace NewsAggregation.Services
             {
                 _logger.LogError(ex, "Error in UpdateArticle");
                 return new StatusCodeResult(500);
+            }
+        }
+        public async Task<PagedInfo<ArticleDto>> PagedArticlesView(int page, int pageSize, string searchByTitle)
+        {
+            try
+            {
+                var articles = _unitOfWork.Repository<Article>().GetAll();
+
+                articles = articles.WhereIf(!string.IsNullOrEmpty(searchByTitle), a => a.Title.Contains(searchByTitle));
+
+                var totalCount = await articles.CountAsync();
+                var pagedArticles = await articles.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+                var mappedArticles = _mapper.Map<List<ArticleDto>>(pagedArticles);
+
+                return new PagedInfo<ArticleDto>
+                {
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    Items = mappedArticles
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetPagedArticles");
+                throw;
             }
         }
     }

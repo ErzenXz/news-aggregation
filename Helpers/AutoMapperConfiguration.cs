@@ -5,6 +5,8 @@ using NewsAggregation.DTO.ArticleTag;
 using NewsAggregation.DTO.Category;
 using NewsAggregation.DTO.Comment;
 using NewsAggregation.DTO.Favorite;
+using NewsAggregation.DTO.UserPreferences;
+using NewsAggregation.Models;
 
 namespace NewsAggregation.Helpers;
 
@@ -17,7 +19,8 @@ public class AutoMapperConfiguration : Profile
         CreateMap<Article, ArticleCreateDto>().ReverseMap();
 
         CreateMap<Article, ArticleUpdateDto>().ReverseMap();
-
+        CreateMap<UserPreference, UserPreferencesCreateDto>().ReverseMap();
+            
         CreateMap<Category, CategoryCreateDto>().ReverseMap();
 
         CreateMap<Comment, CommentDto>().ReverseMap();

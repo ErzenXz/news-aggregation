@@ -23,9 +23,7 @@ public class AutoMapperConfiguration : Profile
 
         CreateMap<Bookmark, BookmarkDto>().ReverseMap();
         CreateMap<Bookmark, BookmarkCreateDto>().ReverseMap();
-
-
-
+        
 
     }
 }

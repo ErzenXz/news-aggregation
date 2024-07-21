@@ -18,8 +18,7 @@ public class BookmarkService : IBookmarkService
         _unitOfWork = unitOfWork;
         _mapper = mapper;
     }
-
-
+    
     public async Task<List<Bookmark>> GetAllBookmarks()
     {
         var bookmarks = await _unitOfWork.Repository<Bookmark>().GetAll().ToListAsync();

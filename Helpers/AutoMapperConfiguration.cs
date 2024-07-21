@@ -21,8 +21,8 @@ public class AutoMapperConfiguration : Profile
         CreateMap<Comment, CommentDto>().ReverseMap();
         CreateMap<Comment, CommentCreateDto>().ReverseMap();
 
-        CreateMap<Bookmark, FavoriteDto>().ReverseMap();
-        CreateMap<Bookmark, FavoriteCreateDto>().ReverseMap();
+        CreateMap<Bookmark, BookmarkDto>().ReverseMap();
+        CreateMap<Bookmark, BookmarkCreateDto>().ReverseMap();
 
 
 

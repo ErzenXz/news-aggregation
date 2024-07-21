@@ -58,8 +58,8 @@ public class CommentService : ICommentService
     
     public async Task<Comment> GetCommentById(Guid id)
     {
-        var comment = _unitOfWork.Repository<Comment>().GetByCondition(x => x.Id == id).FirstOrDefaultAsync();
-        return await comment;
+        var comment = await _unitOfWork.Repository<Comment>().GetByCondition(x => x.Id == id).FirstOrDefaultAsync();
+        return comment;
     }
 
     public async Task CreateComment(CommentCreateDto comment)

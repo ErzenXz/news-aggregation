@@ -57,6 +57,8 @@ builder.Services.AddScoped<IAdsService, AdsService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ISubscriptionsService, SubscriptionsService>();
 builder.Services.AddScoped<ISourceService, SourceService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<IBookmarkService, BookmarkService>();
 
 builder.Services.AddSignalR(hubOptions =>
 {

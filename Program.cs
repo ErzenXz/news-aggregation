@@ -87,6 +87,7 @@ builder.Services.AddSingleton<RssService>();
 builder.Services.AddControllers();
 
 builder.Services.AddHostedService<BackgroundNotificationService>();
+builder.Services.AddHostedService<ScapeNewsSourcesService>();
 builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>(sp => new BackgroundTaskQueue(100));
 builder.Services.AddTransient<SecureMail>();
 builder.Services.AddHostedService<QueueEmailService>();

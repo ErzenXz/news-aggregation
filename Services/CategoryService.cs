@@ -70,6 +70,22 @@ namespace NewsAggregation.Services
             }
         }
 
+        public async Task<IActionResult> GetCategoryById(int id)
+        {
+            try
+            {
+                var category = await _unitOfWork.Repository<Category>().GetById(id);
+
+                var categoryDto = _mapper.Map<CategoryCreateDto>(category);
+                return new OkObjectResult(categoryDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetCategoryById");
+                return new StatusCodeResult(500);
+            }
+        }
+
         public async Task<IActionResult> GetCategoryByName(string name)
         {
             try

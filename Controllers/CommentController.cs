@@ -15,35 +15,42 @@ public class CommentController : ControllerBase
         _commentService = commentService;
     }
 
-    [HttpGet("GetCommentById/{id}")]
+    [HttpGet("{id}")]
     public async Task<IActionResult> GetCommentById(Guid id)
     {
         var comment = await _commentService.GetCommentById(id);
         return Ok(comment);
     }
 
-    [HttpGet("GetComments")]
+    [HttpGet("article/{articleId}")]
+    public async Task<IActionResult> GetCommentsByArticleId(Guid articleId)
+    {
+        var comments = await _commentService.GetCommentsByArticleId(articleId);
+        return Ok(comments);
+    }
+
+    [HttpGet("all")]
     public async Task<IActionResult> GetComments()
     {
         var comments = await _commentService.GetAllComments();
         return Ok(comments);
     }
 
-    [HttpPost("CreateComment")]
+    [HttpPost("create")]
     public async Task<IActionResult> CreateComment([FromBody] CommentCreateDto comment)
     {
         await _commentService.CreateComment(comment);
         return Ok();
     }
 
-    [HttpPut("UpdateComment/{id}")]
+    [HttpPut("{id}")]
     public async Task<IActionResult> UpdateComment(Guid id, [FromBody] CommentDto comment)
     {
         await _commentService.UpdateComment(id, comment);
         return Ok();
     }
 
-    [HttpDelete("DeleteComment/{id}")]
+    [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteComment(Guid id)
     {
         await _commentService.DeleteComment(id);

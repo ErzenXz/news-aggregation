@@ -10,5 +10,6 @@ namespace NewsAggregation.Services.Interfaces
         Task<IActionResult> GetCategoryByName(string name);
         Task<IActionResult> GetAllCategories();
         Task<IActionResult> UpdateCategory(int id, CategoryCreateDto updateCategory);
+        Task<IActionResult> GetCategoryById(int id);
     }
 }

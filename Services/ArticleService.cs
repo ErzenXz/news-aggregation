@@ -121,7 +121,6 @@ namespace NewsAggregation.Services
                     return new NotFoundResult();
                 }
 
-              
 
                 article.Title = updateArticle.Title;
                 article.Content = updateArticle.Content;

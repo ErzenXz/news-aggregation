@@ -10,6 +10,9 @@ using NewsAggregation.Helpers;
 using NewsAggregation.Services.Interfaces;
 using System;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using NewsAggregation.Models;
+using NewsAggregation.Data;
 
 namespace NewsAggregation.Services
 {
@@ -18,13 +21,18 @@ namespace NewsAggregation.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly ILogger<AuthService> _logger;
+        private readonly DBContext _dBContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public ArticleService(IMapper mapper, IUnitOfWork unitOfWork, ILogger<AuthService> logger)
+        public ArticleService(IMapper mapper, IUnitOfWork unitOfWork, ILogger<AuthService> logger, DBContext dbContext, IHttpContextAccessor httpContextAccessor)
         {
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _logger = logger;
+            _dBContext = dbContext;
+            _httpContextAccessor = httpContextAccessor;
         }
+
 
         public async Task<IActionResult> CreateArticle(ArticleCreateDto article)
         {
@@ -94,14 +102,28 @@ namespace NewsAggregation.Services
             }
         }
 
-        public async Task<IActionResult> GetAllArticles()
+        public async Task<IActionResult> GetAllArticles(string? range = null)
         {
+            var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
+            var page = queryParams.Page;
+            var pageSize = queryParams.PerPage;
+
+            
+
             try
             {
-                var articles = await _unitOfWork.Repository<Article>().GetAll().ToListAsync();
+                var articles = await _unitOfWork.Repository<Article>().GetAll().Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
-                var articlesDto = _mapper.Map<List<ArticleDto>>(articles);
-                return new OkObjectResult(articlesDto);
+                // Get 3-5 random ads
+                var ads = await _unitOfWork.Repository<Ads>().GetAll().OrderBy(a => Guid.NewGuid()).Take(new Random().Next(3, 5)).ToListAsync();
+
+
+                // Add Content-Range header
+                
+                _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles {page * pageSize}-{(page + 1) * pageSize - 1}/{articles.Count}");
+
+                return new OkObjectResult(new {Articles = articles, Ads = ads});
+
             }
             catch (Exception ex)
             {
@@ -142,6 +164,7 @@ namespace NewsAggregation.Services
                 return new StatusCodeResult(500);
             }
         }
+
         public async Task<PagedInfo<ArticleDto>> PagedArticlesView(int page, int pageSize, string searchByTitle)
         {
             try
@@ -169,5 +192,82 @@ namespace NewsAggregation.Services
                 throw;
             }
         }
+
+        public async Task<IActionResult> GetRecommendetArticles()
+        {
+            try
+            {
+                // Get refresh token from cookies
+                var refreshToken = _httpContextAccessor.HttpContext.Request.Cookies["refreshToken"];
+
+                // Get user agent from request headers
+                var userAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString();
+
+                if (refreshToken == null)
+                {
+                    var articlesF = await _unitOfWork.Repository<Article>().GetAll().Take(5).ToListAsync();
+
+                    return new OkObjectResult(articlesF);
+                    
+                }
+
+                var user = await FindUserByRefreshToken(refreshToken, userAgent);
+
+                if (user == null)
+                {
+                    var articlesF = await _unitOfWork.Repository<Article>().GetAll().Take(5).ToListAsync();
+
+                    return new OkObjectResult(articlesF);
+                }
+
+                var userHistory = await _unitOfWork.Repository<UserHistory>().GetByCondition(uh => uh.UserId == user.Id).ToListAsync();
+
+                // Get most used tags 
+                var tags = userHistory.SelectMany(uh => uh.Tags.Split(",")).GroupBy(t => t).OrderByDescending(t => t.Count()).Select(t => t.Key).Take(5).ToList();
+
+                var articles = await _unitOfWork.Repository<Article>().GetAll().Where(a => tags.Any(t => a.Tags.Contains(t))).Take(5).ToListAsync();
+
+                // Content-Range header
+                _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles 0-4/{articles.Count}");
+
+                return new OkObjectResult(articles);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetRecommendetArticles");
+                return new BadRequestObjectResult(new { Messages = ex.Message });
+            }
+        }
+
+
+        public async Task<User?> FindUserByRefreshToken(string refreshToken, string userAgent)
+        {
+            var currentTime = DateTime.UtcNow;
+
+            var refreshTokenEntry = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.Expires > currentTime && r.UserAgent == userAgent);
+
+            if (refreshTokenEntry == null)
+            {
+                return null;
+            }
+
+            var userId = refreshTokenEntry.UserId;
+            var refreshTokenVersion = refreshTokenEntry.TokenVersion;
+
+            var user = await _dBContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            if (user.TokenVersion != refreshTokenVersion)
+            {
+                return null;
+            }
+
+            return user;
+        }
+
     }
 }

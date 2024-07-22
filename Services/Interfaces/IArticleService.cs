@@ -11,10 +11,14 @@ namespace NewsAggregation.Services.Interfaces
         Task<IActionResult> DeleteArticle(Guid id);
         Task<IActionResult> GetArticleById(Guid id);
 
-        Task<IActionResult> GetAllArticles();
+        Task<IActionResult> GetAllArticles(string? range = null);
         Task<IActionResult> UpdateArticle(Guid id, ArticleUpdateDto updateArticle);
 
         Task<PagedInfo<ArticleDto>> PagedArticlesView(int page, int pageSize, string searchByTitle);
+
+        //Task<IActionResult> GetArticlesByCategory(Guid categoryId);
+        //Task<IActionResult> GetArticlesByTag(Guid tagId);
+        Task<IActionResult> GetRecommendetArticles();
 
     }
 }

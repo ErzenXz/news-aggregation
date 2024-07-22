@@ -25,9 +25,13 @@ public class CommentService : ICommentService
         return comments;
     }
 
-    public async Task<List<Comment>> GetAllComments()
+    public async Task<List<Comment>> GetAllComments(string? range = null)
     {
-        var comments = await _unitOfWork.Repository<Comment>().GetAll().ToListAsync();
+        var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
+        var page = queryParams.Page;
+        var pageSize = queryParams.PerPage;
+
+        var comments = await _unitOfWork.Repository<Comment>().GetAll().Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
         return comments;
     }
 

@@ -30,19 +30,26 @@ namespace NewsAggregation.Services
                 {
                     using (var reader = XmlReader.Create(stream))
                     {
-                        var feed = SyndicationFeed.Load(reader);
-
-                        foreach (var item in feed.Items)
+                        try
                         {
-                            var rssItem = new RssArticle
+                            var feed = SyndicationFeed.Load(reader);
+
+                            foreach (var item in feed.Items)
                             {
-                                Title = item.Title?.Text,
-                                Description = item.Summary?.Text,
-                                Link = item.Links.FirstOrDefault()?.Uri.ToString(),
-                                Image = GetImageFromItem(item),
-                                PubDate = item.PublishDate.DateTime.ToString("dd/MM/yyyy HH:mm")
-                            };
-                            items.Add(rssItem);
+                                var rssItem = new RssArticle
+                                {
+                                    Title = item.Title?.Text,
+                                    Description = item.Summary?.Text,
+                                    Link = item.Links.FirstOrDefault()?.Uri.ToString(),
+                                    Image = GetImageFromItem(item),
+                                    PubDate = item.PublishDate.DateTime.ToString("dd/MM/yyyy HH:mm")
+                                };
+                                items.Add(rssItem);
+                            }
+                        }
+                        catch (XmlException ex)
+                        {
+                            Console.WriteLine($"XML error: {ex.Message}");
                         }
                     }
                 }
@@ -99,6 +106,5 @@ namespace NewsAggregation.Services
 
             return null;
         }
-
     }
 }

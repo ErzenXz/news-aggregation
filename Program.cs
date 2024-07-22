@@ -18,6 +18,7 @@ using AutoMapper;
 using NewsAggregation.Helpers;
 using NewsAggregation.Services.ServiceJobs;
 using NewsAggregation.Data.UnitOfWork;
+using NewsAggregation.Services.Cached;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,6 +52,12 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddAutoMapper(typeof(AutoMapperConfiguration));
 
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetSection("Redis:Configuration").Value;
+    //options.InstanceName = builder.Configuration.GetSection("Redis:InstanceName").Value;
+});
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 //builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
@@ -61,8 +68,15 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<ISubscriptionsService, SubscriptionsService>();
 builder.Services.AddScoped<ISourceService, SourceService>();
 builder.Services.AddScoped<IUnitOfWork,UnitOfWork>();
+
 builder.Services.AddScoped<IArticleService, ArticleService>();
-builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.Decorate<IArticleService, CachedArticleService>();
+
+builder.Services.AddScoped<ICommentService,CommentService>();
+builder.Services.Decorate<ICommentService, CachedCommentService>();
+
+
+
 builder.Services.AddScoped<IBookmarkService, BookmarkService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IUserPreferenceService, UserPreferenceService>();

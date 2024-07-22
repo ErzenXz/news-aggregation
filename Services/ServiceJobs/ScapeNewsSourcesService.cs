@@ -45,7 +45,8 @@ namespace NewsAggregation.Services.ServiceJobs
                         continue;
                     }
 
-                    // Store the items in the database
+                    var articlesToAdd = new List<Article>();
+
                     foreach (var item in items)
                     {
                         // Check if the article already exists in the database
@@ -55,68 +56,52 @@ namespace NewsAggregation.Services.ServiceJobs
                             continue;
                         }
 
-                        var article = new Article();
-                        article.Title = item.Title;
-                        article.Description = item.Description;
+                        var article = new Article
+                        {
+                            Title = item.Title,
+                            Description = item.Description,
+                            ImageUrl = item.Image ?? "https://via.placeholder.com/150",
+                            Url = item.Link,
+                            SourceId = source.Id,
+                            AuthorId = new Guid("46611d66-cbd8-4a2f-9f9c-527edeab3984"),
+                            CategoryId = 1,
+                            Views = 0,
+                            Likes = 0,
+                            IsPublished = true,
+                            PublishedAt = DateTime.UtcNow,
+                            Tags = string.Join(",", item.Description.Split(' ')
+                                .GroupBy(x => x)
+                                .OrderByDescending(x => x.Count())
+                                .Select(x => x.Key)
+                                .Take(10)
+                                .Where(tag => !string.IsNullOrWhiteSpace(tag))),
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow,
+                            Content = item.Description
+                        };
 
                         if (item.Image != null)
                         {
                             article.ImageUrl = item.Image;
-                        } else
+                        }
+                        else
                         {
                             article.ImageUrl = "https://via.placeholder.com/150";
                         }
 
-                        article.Url = item.Link;
-                        article.SourceId = source.Id;
-                        article.AuthorId = new Guid("46611d66-cbd8-4a2f-9f9c-527edeab3984");
-
-                        article.CategoryId = 1;
-                        article.Views = 0;
-                        article.Likes = 0;
-                        article.IsPublished = true;
-                        var pubDateString = item.PubDate;
-                        if (DateTime.TryParse(pubDateString, out DateTime pubDate))
-                        {
-                            article.PublishedAt = pubDate;
-                        }
-                        
-                        // Create tags for the article by selecting the most used words in the description without an api
-                        var tags = item.Description.Split(' ')
-                            .GroupBy(x => x)
-                            .OrderByDescending(x => x.Count())
-                            .Select(x => x.Key)
-                            .Take(5)
-                            .ToList();
-
-                        var tagsString = "";
-
-                        foreach (var tag in tags)
-                        {
-                            tagsString += tag + ",";
-                        }
-
-                        article.Tags = tagsString;
-                        article.CreatedAt = DateTime.UtcNow;
-                        article.UpdatedAt = DateTime.UtcNow;
-                        article.Content = item.Description;
-
-                        // Save the article to the database
-
-                        var result = await dbContext.Articles.AddAsync(article);
-                        if (result.State == EntityState.Added)
-                        {
-                            _logger.LogInformation($"Article {article.Title} added to the database.");
-                        }
+                        articlesToAdd.Add(article);
                     }
 
-                    await dbContext.SaveChangesAsync();
-
+                    if (articlesToAdd.Any())
+                    {
+                        await dbContext.Articles.AddRangeAsync(articlesToAdd);
+                        await dbContext.SaveChangesAsync();
+                        _logger.LogInformation($"{articlesToAdd.Count} articles added to the database from source {source.Url}.");
+                    }
                 }
-
-
             }
         }
+
 
 
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)

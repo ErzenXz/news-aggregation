@@ -30,9 +30,9 @@ public class CommentController : ControllerBase
     }
 
     [HttpGet("all")]
-    public async Task<IActionResult> GetComments()
+    public async Task<IActionResult> GetComments(string? range = null)
     {
-        var comments = await _commentService.GetAllComments();
+        var comments = await _commentService.GetAllComments(range);
         return Ok(comments);
     }
 

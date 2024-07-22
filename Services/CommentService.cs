@@ -19,6 +19,12 @@ public class CommentService : ICommentService
         _mapper = mapper;
     }
 
+    public async Task<List<Comment>> GetCommentsByArticleId(Guid articleId)
+    {
+        var comments = await _unitOfWork.Repository<Comment>().GetByCondition(x => x.ArticleId == articleId).ToListAsync();
+        return comments;
+    }
+
     public async Task<List<Comment>> GetAllComments()
     {
         var comments = await _unitOfWork.Repository<Comment>().GetAll().ToListAsync();
@@ -29,14 +35,7 @@ public class CommentService : ICommentService
     {
         IQueryable<Comment> comments;
 
-        if (articleId != null)
-        {
-            comments = _unitOfWork.Repository<Comment>().GetByCondition(x => x.ArticleId == articleId);
-        }
-        else
-        {
-            comments = _unitOfWork.Repository<Comment>().GetAll();
-        }
+        comments = _unitOfWork.Repository<Comment>().GetByCondition(x => x.ArticleId == articleId);
 
         comments = comments.WhereIf(!string.IsNullOrEmpty(searchByUser), x => x.User.FullName.Contains(searchByUser));
         
@@ -54,12 +53,15 @@ public class CommentService : ICommentService
 
         return pagedComments;
     }
-
     
     public async Task<Comment> GetCommentById(Guid id)
     {
-        var comment = _unitOfWork.Repository<Comment>().GetByCondition(x => x.Id == id).FirstOrDefaultAsync();
-        return await comment;
+        var comment = await _unitOfWork.Repository<Comment>().GetByCondition(x => x.Id == id).FirstOrDefaultAsync();
+        if (comment == null)
+        {
+            throw new Exception("Comment not found");
+        }
+        return comment;
     }
 
     public async Task CreateComment(CommentCreateDto comment)

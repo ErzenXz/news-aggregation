@@ -4,7 +4,7 @@ using NewsAggregation.Services;
 namespace NewsAggregation.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("rss")]
     public class RssController : ControllerBase
     {
         private readonly RssService _rssFeedService;
@@ -15,9 +15,9 @@ namespace NewsAggregation.Controllers
         }
 
         [HttpGet]
-        public IActionResult Get(string url)
+        public async Task<IActionResult> Get(string url)
         {
-            var items = _rssFeedService.ParseRssFeed(url);
+            var items = await RssService.ParseRssFeed(url);
             return Ok(items);
         }
     }

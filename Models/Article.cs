@@ -22,6 +22,8 @@ namespace News_aggregation.Entities
         [ForeignKey("SourceId")]
         public Source Source { get; set; }
 
+        public string? Url { get; set; }
+
         public DateTime PublishedAt { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }

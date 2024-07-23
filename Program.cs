@@ -19,6 +19,8 @@ using NewsAggregation.Helpers;
 using NewsAggregation.Services.ServiceJobs;
 using NewsAggregation.Data.UnitOfWork;
 using NewsAggregation.Services.Cached;
+using Stripe;
+using SourceService = NewsAggregation.Services.SourceService;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -141,6 +143,7 @@ string accessToken = configuration["AWS:AccessKey"];
 string secret = configuration["AWS:SecretKey"];
 var connectionString = configuration["ConnectionStrings:DefaultConnection"];
 
+StripeConfiguration.ApiKey = configuration["StripeSettings:SecretKey"];
 
 var credentials = new Amazon.Runtime.BasicAWSCredentials(accessToken, secret);
 var config = new AmazonS3Config

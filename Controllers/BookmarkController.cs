@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NewsAggregation.DTO.Favorite;
 using NewsAggregation.Services.Interfaces;
@@ -16,17 +17,17 @@ public class BookmarkController : ControllerBase
     }
 
     [HttpGet("GetAllBookmarks")]
-    public async Task<IActionResult> GetAllBookmarks()
+    public async Task<IActionResult> GetAllBookmarks(string? range = null)
     {
-        var bookmarks = await _bookmarkService.GetAllBookmarks();
+        var bookmarks = await _bookmarkService.GetAllBookmarks(range);
         return Ok(bookmarks);
     }
 
-    [HttpGet("GetBookmarksList")]
-    public async Task<IActionResult> GetBookmarksList(string searchByUser, int page, int pageSize, Guid articleId)
+    [HttpGet("GetBookmarksByArticleId/{id}")]
+    public async Task<IActionResult> GetBookmarksByArticleId(Guid id)
     {
-        var bookmarksList = await _bookmarkService.BookmarksListView(searchByUser, page, pageSize, articleId);
-        return Ok(bookmarksList);
+        var bookmarks = await _bookmarkService.GetBookmarksByArticleId(id);
+        return Ok(bookmarks);
     }
 
     [HttpGet("GetBookmarkById/{id}|")]

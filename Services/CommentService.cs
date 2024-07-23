@@ -48,7 +48,11 @@ public class CommentService : ICommentService
         
         try
         {
-            var comments = await _unitOfWork.Repository<Comment>().GetAll().Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            var comments = await _unitOfWork.Repository<Comment>().GetAll()
+                .Include(x => x.Article)
+                .Include(x => x.User)
+                .Skip((page - 1) * pageSize).Take(pageSize)
+                .ToListAsync();
 
             var commentsList = _mapper.Map<CommentDto>(comments);
 
@@ -65,7 +69,10 @@ public class CommentService : ICommentService
     {
         try
         {
-            var comment = await _unitOfWork.Repository<Comment>().GetByCondition(x => x.Id == id).FirstOrDefaultAsync();
+            var comment = await _unitOfWork.Repository<Comment>().GetByCondition(x => x.Id == id)
+                .Include(x => x.Article)
+                .Include(x => x.User)
+                .FirstOrDefaultAsync();
             if (comment == null)
             {
                 _logger.LogWarning("Comment not found");

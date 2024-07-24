@@ -40,6 +40,7 @@ namespace NewsAggregation.Services
                                 {
                                     Title = item.Title?.Text,
                                     Description = item.Summary?.Text,
+                                    Content = item.Content?.ToString(),
                                     Link = item.Links.FirstOrDefault()?.Uri.ToString(),
                                     Image = GetImageFromItem(item),
                                     PubDate = item.PublishDate.DateTime.ToString("dd/MM/yyyy HH:mm")

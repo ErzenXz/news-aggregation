@@ -19,7 +19,7 @@ using System.Threading.Tasks;
     
     public class ScapeNewsSourcesService : BackgroundService
     {
-        private readonly ILogger<BackgroundNotificationService> _logger;
+        private readonly ILogger<ScapeNewsSourcesService> _logger;
         private Timer _timer;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IMapper _mapper;

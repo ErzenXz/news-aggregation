@@ -1,4 +1,4 @@
-﻿using System.Net.Sockets;
+using System.Net.Sockets;
 using AutoMapper;
 using News_aggregation.Entities;
 using NewsAggregation.Data.UnitOfWork;
@@ -41,11 +41,18 @@ namespace NewsAggregation.Services.ServiceJobs
                     {
                         _logger.LogWarning($"Retry {retryCount} encountered an error: {exception.Message}. Waiting {timeSpan} before next retry.");
                     });
+
         }
 
         private async void DoWork(object state)
+{
+    using (var scope = _serviceScopeFactory.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<DBContext>();
+
+        try
         {
-            using (var scope = _serviceScopeFactory.CreateScope())
+            await _retryPolicy.ExecuteAsync(async () =>
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<DBContext>();
 
@@ -127,10 +134,10 @@ namespace NewsAggregation.Services.ServiceJobs
                     {
                         _logger.LogError($"Inner exception: {ex.InnerException.Message}");
                     }
-                }
-            }
-        }
 
+                }
+            });
+        }
 
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {

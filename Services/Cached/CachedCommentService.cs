@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Caching.Distributed;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using News_aggregation.Entities;
 using NewsAggregation.DTO.Comment;
@@ -19,46 +20,24 @@ namespace NewsAggregation.Services.Cached
             _cache = cache;
         }
 
-        public async Task<PagedInfo<CommentDto>> CommentsListView(string searchByUser, int page, int pageSize, Guid articleId)
-        {
-            string cacheKey = $"comments-{searchByUser}-{page}-{pageSize}-{articleId}";
-            
-            var cachedResult = _cache.GetString(cacheKey);
-            if (!string.IsNullOrEmpty(cachedResult))
-            {
-                return JsonConvert.DeserializeObject<PagedInfo<CommentDto>>(cachedResult);
-            }
-
-           var result = await _decorated.CommentsListView(searchByUser, page, pageSize, articleId);
-
-            var serializedResult = JsonConvert.SerializeObject(result);
-
-            _cache.SetString(cacheKey, serializedResult, new DistributedCacheEntryOptions
-            {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3)
-            });
-
-            return result;
-        }
-
-        public Task CreateComment(CommentCreateDto comment)
+        public Task<IActionResult> CreateComment(CommentCreateDto comment)
         {
             return _decorated.CreateComment(comment);
         }
 
-        public Task DeleteComment(Guid id)
+        public Task<IActionResult> DeleteComment(Guid id)
         {
             return _decorated.DeleteComment(id);
         }
 
-        public async Task<List<Comment>> GetAllComments(string? range = null)
+        public async Task<IActionResult> GetAllComments(string? range = null)
         {
             string cacheKey = $"comments-{range}";
             var cachedResult = _cache.GetString(cacheKey);
 
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonConvert.DeserializeObject<List<Comment>>(cachedResult);
+                return JsonConvert.DeserializeObject<dynamic>(cachedResult);
             }
 
             var result = await _decorated.GetAllComments(range);
@@ -75,13 +54,13 @@ namespace NewsAggregation.Services.Cached
         }
 
 
-        public async Task<Comment> GetCommentById(Guid id)
+        public async Task<IActionResult> GetCommentById(Guid id)
         {
             string cacheKey = $"comment-{id}";
             var cachedResult = _cache.GetString(cacheKey);
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonConvert.DeserializeObject<Comment>(cachedResult);
+                return JsonConvert.DeserializeObject<dynamic>(cachedResult);
             }
 
             var result = await _decorated.GetCommentById(id);
@@ -95,14 +74,14 @@ namespace NewsAggregation.Services.Cached
             return result;
         }
 
-        public async Task<List<Comment>> GetCommentsByArticleId(Guid articleId)
+        public async Task<IActionResult> GetCommentsByArticleId(Guid articleId)
         {
             string cacheKey = $"comments-{articleId}";
             var cachedResult = _cache.GetString(cacheKey);
 
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonConvert.DeserializeObject<List<Comment>>(cachedResult);
+                return JsonConvert.DeserializeObject<dynamic>(cachedResult);
             }
 
             var result = await _decorated.GetCommentsByArticleId(articleId);
@@ -116,7 +95,7 @@ namespace NewsAggregation.Services.Cached
             return result;
         }
 
-        public Task UpdateComment(Guid id, CommentDto comment)
+        public Task<IActionResult> UpdateComment(Guid id, CommentDto comment)
         {
             return _decorated.UpdateComment(id, comment);
         }

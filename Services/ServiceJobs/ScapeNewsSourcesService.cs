@@ -9,54 +9,81 @@ namespace NewsAggregation.Services.ServiceJobs
     using NewsAggregation.Data;
     using NewsAggregation.DTO.Article;
     using NewsAggregation.Services.ServiceJobs;
-
+using Polly;
+using Polly.Retry;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+    
     public class ScapeNewsSourcesService : BackgroundService
     {
-        private readonly ILogger<BackgroundNotificationService> _logger;
+        private readonly ILogger<ScapeNewsSourcesService> _logger;
         private Timer _timer;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
+        private readonly AsyncRetryPolicy _retryPolicy;
 
-
-        public ScapeNewsSourcesService(ILogger<BackgroundNotificationService> logger, IServiceScopeFactory serviceScopeFactory)
+        public ScapeNewsSourcesService(ILogger<ScapeNewsSourcesService> logger, IServiceScopeFactory serviceScopeFactory)
         {
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
 
+            // Configure Polly retry policy
+            _retryPolicy = Policy
+                .Handle<Exception>()
+                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                    (exception, timeSpan, retryCount, context) =>
+                    {
+                        _logger.LogWarning($"Retry {retryCount} encountered an error: {exception.Message}. Waiting {timeSpan} before next retry.");
+                    });
+
         }
 
         private async void DoWork(object state)
+{
+    using (var scope = _serviceScopeFactory.CreateScope())
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<DBContext>();
+
+        try
         {
-            using (var scope = _serviceScopeFactory.CreateScope())
+            await _retryPolicy.ExecuteAsync(async () =>
             {
-                var dbContext = scope.ServiceProvider.GetRequiredService<DBContext>();
                 // Get all sources from the database
-                var sources = await dbContext.Sources.ToListAsync();
+                var sources = await dbContext.Sources.AsNoTracking().ToListAsync();
 
-                foreach (var source in sources)
+                // Fetch the RSS feeds for all sources in parallel
+                var fetchTasks = sources.Select(source => 
+                    RssService.ParseRssFeed(source.Url)
+                        .ContinueWith(t => new { Source = source, Items = t.Result })
+                ).ToList();
+
+                var results = await Task.WhenAll(fetchTasks);
+
+                var newArticles = new List<Article>();
+
+                // Combine all titles from the items
+                var allItems = results.SelectMany(r => r.Items).ToList();
+                var allTitles = allItems.Select(i => i.Title).ToList();
+
+                // Batch check if the articles already exist in the database
+                var existingTitles = await dbContext.Articles.AsNoTracking()
+                    .Where(a => allTitles.Contains(a.Title))
+                    .Select(a => a.Title)
+                    .ToListAsync();
+
+                // Filter out existing articles and prepare new articles list
+                foreach (var result in results)
                 {
-                    // Fetch the RSS feed from the source
-                    var items = await RssService.ParseRssFeed(source.Url);
+                    var source = result.Source;
+                    var items = result.Items;
 
-                    // If the source has no items, skip it
-                    if (items.Count == 0)
-                    {
-                        continue;
-                    }
-
-                    var articlesToAdd = new List<Article>();
-
-                    foreach (var item in items)
-                    {
-                        // Check if the article already exists in the database
-                        var existingArticle = await dbContext.Articles.FirstOrDefaultAsync(x => x.Title == item.Title);
-                        if (existingArticle != null)
-                        {
-                            continue;
-                        }
-
-                        var article = new Article
+                    var articlesToAdd = items
+                        .Where(item => !existingTitles.Contains(item.Title))
+                        .Select(item => new Article
                         {
                             Title = item.Title,
                             Description = item.Description,
@@ -78,31 +105,26 @@ namespace NewsAggregation.Services.ServiceJobs
                             CreatedAt = DateTime.UtcNow,
                             UpdatedAt = DateTime.UtcNow,
                             Content = item.Description
-                        };
+                        })
+                        .ToList();
 
-                        if (item.Image != null)
-                        {
-                            article.ImageUrl = item.Image;
-                        }
-                        else
-                        {
-                            article.ImageUrl = "https://via.placeholder.com/150";
-                        }
-
-                        articlesToAdd.Add(article);
-                    }
-
-                    if (articlesToAdd.Any())
-                    {
-                        await dbContext.Articles.AddRangeAsync(articlesToAdd);
-                        await dbContext.SaveChangesAsync();
-                        _logger.LogInformation($"{articlesToAdd.Count} articles added to the database from source {source.Url}.");
-                    }
+                    newArticles.AddRange(articlesToAdd);
                 }
-            }
+
+                if (newArticles.Any())
+                {
+                    await dbContext.Articles.AddRangeAsync(newArticles);
+                    await dbContext.SaveChangesAsync();
+                    _logger.LogInformation($"{newArticles.Count} articles added to the database.");
+                }
+            });
         }
-
-
+        catch (Exception ex)
+        {
+            _logger.LogError($"An error occurred while processing sources: {ex.Message}");
+        }
+    }
+}
 
         protected async override Task ExecuteAsync(CancellationToken stoppingToken)
         {

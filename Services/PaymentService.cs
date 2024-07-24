@@ -4,6 +4,7 @@ using NewsAggregation.Data;
 using NewsAggregation.DTO.Payments;
 using NewsAggregation.Models;
 using NewsAggregation.Services.Interfaces;
+using Stripe.Checkout;
 
 namespace NewsAggregation.Services
 {
@@ -63,6 +64,32 @@ namespace NewsAggregation.Services
         {
             try
             {
+                var options = new SessionCreateOptions
+                {
+                    LineItems = new List<SessionLineItemOptions>
+                    {
+                        new SessionLineItemOptions
+                        {
+                            PriceData = new SessionLineItemPriceDataOptions
+                            {
+                                UnitAmount = (long)(paymentRequest.Amount * 100), // Amount in cents
+                                Currency = paymentRequest.Currency,
+                                ProductData = new SessionLineItemPriceDataProductDataOptions
+                                {
+                                    Name = paymentRequest.PaymentDescription,
+                                },
+                            },
+                            Quantity = 1,
+                        },
+                    },
+                    Mode = "payment",
+                    SuccessUrl = "http://localhost:5173/success", // Placeholder URL
+                    CancelUrl = "http://localhost:5173/cancel", // Placeholder URL
+                };
+
+                var service = new SessionService();
+                Session session = await service.CreateAsync(options);
+                
                 var payment = new Payment
                 {
                     Id = Guid.NewGuid(),
@@ -80,7 +107,8 @@ namespace NewsAggregation.Services
                 await _dBContext.Payments.AddAsync(payment);
                 await _dBContext.SaveChangesAsync();
 
-                return new OkObjectResult(payment);
+                Console.WriteLine($"Payment URL: {session.Url}");
+                return new OkObjectResult(new { url = session.Url });
             }
             catch (Exception ex)
             {
@@ -145,6 +173,64 @@ namespace NewsAggregation.Services
                 return new StatusCodeResult(500);
             }
         }
+        
+        // public async Task<IActionResult> CreateStripePayment(PaymentCreateDto paymentRequest)
+        // {
+        //     try
+        //     {
+        //         var options = new SessionCreateOptions
+        //         {
+        //             LineItems = new List<SessionLineItemOptions>
+        //             {
+        //                 new SessionLineItemOptions
+        //                 {
+        //                     PriceData = new SessionLineItemPriceDataOptions
+        //                     {
+        //                         UnitAmount = (long)(paymentRequest.Amount * 100), // Amount in cents
+        //                         Currency = paymentRequest.Currency,
+        //                         ProductData = new SessionLineItemPriceDataProductDataOptions
+        //                         {
+        //                             Name = paymentRequest.PaymentDescription,
+        //                         },
+        //                     },
+        //                     Quantity = 1,
+        //                 },
+        //             },
+        //             Mode = "payment",
+        //             SuccessUrl = "http://localhost:5173/success", // Placeholder URL
+        //             CancelUrl = "http://localhost:5173/cancel", // Placeholder URL
+        //         };
+        //
+        //         var service = new SessionService();
+        //         Session session = await service.CreateAsync(options);
+        //
+        //         var payment = new Payment
+        //         {
+        //             Id = Guid.NewGuid(),
+        //             SubscriptionId = paymentRequest.SubscriptionId,
+        //             Amount = paymentRequest.Amount,
+        //             Currency = paymentRequest.Currency,
+        //             PaymentMethod = paymentRequest.PaymentMethod,
+        //             PaymentStatus = "Pending",
+        //             PaymentGateway = "Stripe",
+        //             PaymentReference = session.Id,
+        //             PaymentDescription = paymentRequest.PaymentDescription,
+        //             PaymentDate = DateTime.UtcNow
+        //         };
+        //
+        //         await _dBContext.Payments.AddAsync(payment);
+        //         await _dBContext.SaveChangesAsync();
+        //
+        //         // Output the URL for manual testing
+        //         Console.WriteLine($"Payment URL: {session.Url}");
+        //         return new OkObjectResult(new { url = session.Url });
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         _logger.LogError(ex, "Error in CreateStripePayment");
+        //         return new StatusCodeResult(500);
+        //     }
+        // }
 
 
     }

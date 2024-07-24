@@ -11,5 +11,7 @@ namespace NewsAggregation.Services.Interfaces
         public Task<IActionResult> CreatePayment(PaymentCreateDto paymentRequest);
         public Task<IActionResult> UpdatePayment(Guid id, PaymentCreateDto paymentRequest);
         public Task<IActionResult> DeletePayment(Guid id);
+        //public Task<IActionResult> CreateStripePayment(PaymentCreateDto paymentRequest);
+
     }
 }

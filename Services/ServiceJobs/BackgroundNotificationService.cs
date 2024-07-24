@@ -23,6 +23,8 @@ public class BackgroundNotificationService : BackgroundService
     {
         using (var scope = _serviceScopeFactory.CreateScope())
         {
+
+            _logger.LogInformation("[x] BG-NService is working.");
             var dbContext = scope.ServiceProvider.GetRequiredService<DBContext>();
             var notifications = await dbContext.Notifications.Where(n => !n.IsRead).ToListAsync();
 
@@ -32,7 +34,7 @@ public class BackgroundNotificationService : BackgroundService
                 await _hubContext.Clients.All.SendAsync("ReceiveNotification", notification);
 
                 // Log the notification
-                _logger.LogInformation($"Notification sent: {notification.Content}");
+                _logger.LogInformation($"[x] Notification sent: {notification.Content}");
 
                 // Mark notification as read
                 notification.IsRead = true;
@@ -47,7 +49,7 @@ public class BackgroundNotificationService : BackgroundService
     {
         _logger.LogInformation("[x] Background Notification Service is starting.");
 
-        _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
+        _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(500));
 
         await Task.Delay(Timeout.Infinite, stoppingToken);
     }

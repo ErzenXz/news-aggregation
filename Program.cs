@@ -93,12 +93,6 @@ builder.Services.AddSignalR(hubOptions =>
 builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddSingleton<RssService>();
 
-// Add Notification Hub and map it to /notification
-
-//builder.Services.AddSignalR().AddHubOptions<NotificationHub>(options =>
-//{
-//    options.EnableDetailedErrors = true;
-//});
 
 builder.Services.AddControllers();
 

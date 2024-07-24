@@ -53,12 +53,6 @@ namespace NewsAggregation.Services.ServiceJobs
                 try
                 {
                     await _retryPolicy.ExecuteAsync(async () =>
-                    {
-                        var dbContext = scope.ServiceProvider.GetRequiredService<DBContext>();
-
-                        try
-                        {
-                            await _retryPolicy.ExecuteAsync(async () =>
                             {
                                 // Get all sources from the database
                                 var sources = await dbContext.Sources.AsNoTracking().ToListAsync();
@@ -126,17 +120,7 @@ namespace NewsAggregation.Services.ServiceJobs
                                     _logger.LogInformation($"{newArticles.Count} articles added to the database.");
                                 }
                             });
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError($"An error occurred while processing sources: {ex.Message}");
-                            if (ex.InnerException != null)
-                            {
-                                _logger.LogError($"Inner exception: {ex.InnerException.Message}");
-                            }
 
-                        }
-                    });
                 }
                 catch (Exception ex)
                 {
@@ -144,6 +128,13 @@ namespace NewsAggregation.Services.ServiceJobs
                     if (ex.InnerException != null)
                     {
                         _logger.LogError($"Inner exception: {ex.InnerException.Message}");
+                    }
+                }
+                finally
+                {
+                    if (dbContext != null)
+                    {
+                        await dbContext.DisposeAsync();
                     }
                 }
             }

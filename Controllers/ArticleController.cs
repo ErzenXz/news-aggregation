@@ -48,7 +48,7 @@ namespace NewsAggregation.Controllers
         {
 
             var articles = await _articleService.GetAllArticles(range);
-            return Ok(articles);
+            return Ok(new {Articles = articles});
         }
 
         [Authorize(Roles = "Admin,SuperAdmin")]

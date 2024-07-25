@@ -44,7 +44,7 @@ namespace NewsAggregation.Controllers
 
         [AllowAnonymous]
         [HttpGet("all")]
-        public async Task<ActionResult<List<ArticleCreateDto>>> GetAllArticles(string? range = null)
+        public async Task<IActionResult> GetAllArticles(string? range = null)
         {
 
             var articles = await _articleService.GetAllArticles(range);

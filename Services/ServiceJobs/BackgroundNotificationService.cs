@@ -24,23 +24,24 @@ public class BackgroundNotificationService : BackgroundService
         using (var scope = _serviceScopeFactory.CreateScope())
         {
 
-            _logger.LogInformation("[x] BG-NService is working.");
-            var dbContext = scope.ServiceProvider.GetRequiredService<DBContext>();
-            var notifications = await dbContext.Notifications.Where(n => !n.IsRead).ToListAsync();
+            //_logger.LogInformation("[x] BG-NService is working.");
+            //var dbContext = scope.ServiceProvider.GetRequiredService<DBContext>();
+            //var notifications = await dbContext.Notifications.Where(n => !n.IsRead).ToListAsync();
 
-            foreach (var notification in notifications)
-            {
-                // Send notification via SignalR
-                await _hubContext.Clients.All.SendAsync("ReceiveNotification", notification);
-
+            //foreach (var notification in notifications)
+            //{
+            //    // Send notification via SignalR
+            //    await _hubContext.Clients.All.SendAsync("ReceiveNotification", notification);
+//
                 // Log the notification
-                _logger.LogInformation($"[x] Notification sent: {notification.Content}");
+             //   _logger.LogInformation($"[x] Notification sent: {notification.Content}");
 
                 // Mark notification as read
-                notification.IsRead = true;
-            }
+             //   notification.IsRead = true;
+           // }
 
-            await dbContext.SaveChangesAsync();
+           // await dbContext.SaveChangesAsync();
+           _logger.LogInformation("[x] BG-NService is working.");
         }
     }
 

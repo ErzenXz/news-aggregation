@@ -108,7 +108,6 @@ namespace NewsAggregation.Services
             var page = queryParams.Page;
             var pageSize = queryParams.PerPage;
 
-            
 
             try
             {

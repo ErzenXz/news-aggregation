@@ -36,7 +36,7 @@ namespace NewsAggregation.Services.ServiceJobs
             _retryPolicy = Policy
                 .Handle<HttpRequestException>()
                 .Or<SocketException>()
-                .WaitAndRetryAsync(5, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
                     (exception, timeSpan, retryCount, context) =>
                     {
                         _logger.LogWarning($"Retry {retryCount} encountered an error: {exception.Message}. Waiting {timeSpan} before next retry.");
@@ -46,6 +46,7 @@ namespace NewsAggregation.Services.ServiceJobs
 
         private async void DoWork(object state)
         {
+            _logger.LogInformation("[x] Fetching news sources.");
             using (var scope = _serviceScopeFactory.CreateScope())
             {
                 var dbContext = scope.ServiceProvider.GetRequiredService<DBContext>();
@@ -89,7 +90,7 @@ namespace NewsAggregation.Services.ServiceJobs
                                         {
                                             Title = item.Title ?? "No Title",
                                             Description = item.Description ?? "No Description",
-                                            ImageUrl = item.Image ?? "https://via.placeholder.com/150",
+                                            ImageUrl = item.Image ?? "https://via.placeholder.com/500",
                                             Url = item.Link ?? "https://example.com",
                                             SourceId = source.Id,
                                             AuthorId = new Guid("46611d66-cbd8-4a2f-9f9c-527edeab3984"),
@@ -145,7 +146,7 @@ namespace NewsAggregation.Services.ServiceJobs
         {
             _logger.LogInformation("[x] Background News Scrapper Service is starting.");
 
-            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMinutes(3));
+            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMinutes(7));
 
             await Task.Delay(Timeout.Infinite, stoppingToken);
         }

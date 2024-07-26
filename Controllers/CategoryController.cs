@@ -37,7 +37,7 @@ namespace NewsAggregation.Controllers
             return Ok(category);
         }
 
-        [HttpGet("name/{name}")]
+        [HttpGet("{name}")]
         public async Task<ActionResult<CategoryCreateDto>> GetCategoryByName(string name)
         {
             var category = await _categoryService.GetCategoryByName(name);

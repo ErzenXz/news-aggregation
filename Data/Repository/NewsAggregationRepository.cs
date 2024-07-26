@@ -39,7 +39,7 @@ namespace NewsAggregation.Data.Repository
 
         public IQueryable<Tentity> GetAll()
         {
-            var result = _dbContext.Set<Tentity>();
+            var result = _dbContext.Set<Tentity>().AsNoTracking();
 
             return result;
         }

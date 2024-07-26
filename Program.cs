@@ -21,6 +21,8 @@ using NewsAggregation.Data.UnitOfWork;
 using NewsAggregation.Services.Cached;
 using Stripe;
 using SourceService = NewsAggregation.Services.SourceService;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -60,7 +62,11 @@ builder.Services.AddStackExchangeRedisCache(options =>
     //options.InstanceName = builder.Configuration.GetSection("Redis:InstanceName").Value;
 });
 
+
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IUserValidationService, UserValidationService>();
+
+
 //builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
@@ -128,7 +134,27 @@ builder.Services.AddAuthentication().AddJwtBearer(options =>
         ValidateAudience = false,
         ValidateIssuerSigningKey = true,
         ValidateLifetime = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetSection("AppSecurity:Secret").Value!))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetSection("AppSecurity:Secret").Value!)),
+        RoleClaimType = ClaimTypes.Role
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var claimsIdentity = context.Principal.Identity as ClaimsIdentity;
+            var userName = claimsIdentity.FindFirst(ClaimTypes.Name)?.Value;
+            var email = claimsIdentity.FindFirst(ClaimTypes.Email)?.Value;
+            var role = claimsIdentity.FindFirst(ClaimTypes.Role)?.Value;
+
+            var userValidationService = context.HttpContext.RequestServices.GetRequiredService<IUserValidationService>();
+            var isValidUser = await userValidationService.ValidateUserAsync(userName, email, role);
+
+            if (!isValidUser)
+            {
+                context.Fail("Unauthorized");
+            }
+        }
     };
 });
 
@@ -144,6 +170,7 @@ var connectionString = configuration["ConnectionStrings:DefaultConnection"];
 StripeConfiguration.ApiKey = configuration["StripeSettings:SecretKey"];
 
 var credentials = new Amazon.Runtime.BasicAWSCredentials(accessToken, secret);
+
 var config = new AmazonS3Config
 {
     RegionEndpoint = Amazon.RegionEndpoint.EUWest3
@@ -178,8 +205,6 @@ app.MapScalarUi();
 app.UseHttpsRedirection();
 
 app.UseCors("AllowedOrigins");
-
-
 
 app.MapControllers();
 

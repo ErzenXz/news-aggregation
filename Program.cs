@@ -93,6 +93,15 @@ builder.Services.AddSignalR(hubOptions =>
 builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddSingleton<RssService>();
 
+// Increse the max theards for the ThreadPool
+
+ThreadPool.SetMinThreads(100, 100);
+ThreadPool.SetMaxThreads(1000, 1000);
+
+
+
+
+
 
 builder.Services.AddControllers();
 

@@ -16,9 +16,14 @@ namespace NewsAggregation.Services.Interfaces
 
         Task<PagedInfo<ArticleDto>> PagedArticlesView(int page, int pageSize, string searchByTitle);
 
-        //Task<IActionResult> GetArticlesByCategory(Guid categoryId);
-        //Task<IActionResult> GetArticlesByTag(Guid tagId);
+        Task<IActionResult> GetArticlesByCategory(int categoryId, string? categoryName, string? range = null);
+        Task<IActionResult> GetArticlesByTag(string? tagName, string? range = null);
+        Task<IActionResult> GetArticlesBySource(Guid sourceId, string? sourceName, string? range = null);
+
         Task<IActionResult> GetRecommendetArticles();
+
+        Task<IActionResult> LikeArticle(Guid articleId);
+        Task<IActionResult> AddView(Guid articleId);
 
     }
 }

@@ -146,7 +146,7 @@ namespace NewsAggregation.Services.ServiceJobs
         {
             _logger.LogInformation("[x] Background News Scrapper Service is starting.");
 
-            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMinutes(7));
+            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMinutes(5));
 
             await Task.Delay(Timeout.Infinite, stoppingToken);
         }

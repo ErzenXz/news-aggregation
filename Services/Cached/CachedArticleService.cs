@@ -92,5 +92,31 @@ namespace NewsAggregation.Services.Cached
         {
             return _decorated.UpdateArticle(id, updateArticle);
         }
+
+        public Task<IActionResult> GetArticlesByCategory(int categoryId, string? categoryName, string? range = null)
+        {
+            return _decorated.GetArticlesByCategory(categoryId, categoryName, range);
+        }
+
+        public Task<IActionResult> GetArticlesByTag(string? tagName, string? range = null)
+        {
+            return _decorated.GetArticlesByTag(tagName, range);
+        }
+
+        public Task<IActionResult> GetArticlesBySource(Guid sourceId, string? sourceName, string? range = null)
+        {
+            return _decorated.GetArticlesBySource(sourceId, sourceName, range);
+        }
+
+        public Task<IActionResult> LikeArticle(Guid articleId)
+        {
+            return _decorated.LikeArticle(articleId);
+        }
+
+        public Task<IActionResult> AddView(Guid articleId)
+        {
+            return _decorated.AddView(articleId);
+        }
+
     }
 }

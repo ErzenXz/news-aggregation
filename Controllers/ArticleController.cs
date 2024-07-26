@@ -47,7 +47,8 @@ namespace NewsAggregation.Controllers
         public async Task<IActionResult> GetAllArticles(string? range = null)
         {
             var articles = await _articleService.GetAllArticles(range);
-            return Ok(new {Articles = articles});
+            var articlesList = (OkObjectResult) articles;
+            return Ok(articlesList.Value);
         }
 
         [Authorize(Roles = "Admin,SuperAdmin")]
@@ -58,20 +59,99 @@ namespace NewsAggregation.Controllers
             return Ok(updatedArticle);
         }
 
-        [AllowAnonymous]
-        [HttpGet("allPaged")]
-        public async Task<IActionResult> PagedArticlesView(int page, int pageSize, string searchByTitle)
-        {
-            var articleList = await _articleService.PagedArticlesView( page,pageSize,searchByTitle);
-            return Ok(articleList);
-        }
 
         [AllowAnonymous]
         [HttpGet("recommended")]
         public async Task<IActionResult> GetRecommendetArticles()
         {
             var recommendedArticles = await _articleService.GetRecommendetArticles();
-            return Ok(recommendedArticles);
+            var recommendedArticlesList = (OkObjectResult) recommendedArticles;
+            return Ok(recommendedArticlesList);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("category")]
+        public async Task<IActionResult> GetArticlesByCategory(int categoryId, string? categoryName, string? range = null)
+        {
+            var articles = await _articleService.GetArticlesByCategory(categoryId, categoryName);
+
+            if (articles is OkObjectResult okResult)
+            {
+                return Ok(okResult.Value);
+            }
+            else if (articles is NotFoundResult)
+            {
+                return NotFound();
+            }
+            else if (articles is BadRequestObjectResult badRequestResult)
+            {
+                return BadRequest(badRequestResult.Value);
+            }
+            else
+            {
+                return StatusCode(500, "Unexpected result type");
+            }
+        }
+        [AllowAnonymous]
+        [HttpGet("tag")]
+        public async Task<IActionResult> GetArticlesByTag(string? tagName, string? range = null)
+        {
+            var articles = await _articleService.GetArticlesByTag(tagName, range);
+            if (articles is OkObjectResult okResult)
+            {
+                return Ok(okResult.Value);
+            }
+            else if (articles is NotFoundResult)
+            {
+                return NotFound();
+            }
+            else if (articles is BadRequestObjectResult badRequestResult)
+            {
+                return BadRequest(badRequestResult.Value);
+            }
+            else
+            {
+                return StatusCode(500, "Unexpected result type");
+            }
+        }
+
+        [AllowAnonymous]
+        [HttpGet("source")]
+        public async Task<IActionResult> GetArticlesBySource(Guid sourceId, string? sourceName, string? range = null)
+        {
+            var articles = await _articleService.GetArticlesBySource(sourceId, sourceName,range);
+            if (articles is OkObjectResult okResult)
+            {
+                return Ok(okResult.Value);
+            }
+            else if (articles is NotFoundResult)
+            {
+                return NotFound();
+            }
+            else if (articles is BadRequestObjectResult badRequestResult)
+            {
+                return BadRequest(badRequestResult.Value);
+            }
+            else
+            {
+                return StatusCode(500, "Unexpected result type");
+            }
+        }
+
+        [AllowAnonymous]
+        [HttpPost("like/{articleId}")]
+        public async Task<IActionResult> LikeArticle(Guid articleId)
+        {
+            var result = await _articleService.LikeArticle(articleId);
+            return Ok(result);
+        }
+
+        [AllowAnonymous]
+        [HttpPost("view/{articleId}")]
+        public async Task<IActionResult> AddView(Guid articleId)
+        {
+            var result = await _articleService.AddView(articleId);
+            return Ok(result);
         }
 
     }

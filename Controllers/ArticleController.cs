@@ -46,7 +46,6 @@ namespace NewsAggregation.Controllers
         [HttpGet("all")]
         public async Task<IActionResult> GetAllArticles(string? range = null)
         {
-
             var articles = await _articleService.GetAllArticles(range);
             return Ok(new {Articles = articles});
         }

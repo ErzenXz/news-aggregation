@@ -113,7 +113,7 @@ namespace NewsAggregation.Services
 
             try
             {
-                var articles = await _unitOfWork.Repository<Article>().GetAll().Skip((page - 1) * pageSize).Take(pageSize).OrderByDescending(a => a.CreatedAt).ToListAsync();
+                var articles = await _unitOfWork.Repository<Article>().GetAll().Skip((page - 1) * pageSize).Take(pageSize).OrderBy(a => a.CreatedAt).ToListAsync();
                     
 
                 // Get 3-5 random ads
@@ -227,7 +227,7 @@ namespace NewsAggregation.Services
                     articlesQuery = _unitOfWork.Repository<Article>().GetAll().Where(a => a.Category.Name == categoryName);
                 }
 
-                var articles = await articlesQuery.Skip((page - 1) * pageSize).Take(pageSize).OrderByDescending(a => a.CreatedAt).ToListAsync();
+                var articles = await articlesQuery.Skip((page - 1) * pageSize).Take(pageSize).OrderBy(a => a.CreatedAt).ToListAsync();
 
                 if (articles.Count == 0)
                 {
@@ -263,7 +263,7 @@ namespace NewsAggregation.Services
                 var page = queryParams.Page;
                 var pageSize = queryParams.PerPage;
 
-                var articles = await _unitOfWork.Repository<Article>().GetAll().Skip((page - 1) * pageSize).Take(pageSize).Where(a => a.Tags.Contains(tagName)).OrderByDescending(a => a.CreatedAt).ToListAsync();
+                var articles = await _unitOfWork.Repository<Article>().GetAll().Skip((page - 1) * pageSize).Take(pageSize).Where(a => a.Tags.Contains(tagName)).OrderBy(a => a.CreatedAt).ToListAsync();
 
                 if (articles.Count == 0)
                 {
@@ -306,12 +306,12 @@ namespace NewsAggregation.Services
 
                 if (sourceName == null)
                 {
-                    articles = await _unitOfWork.Repository<Article>().GetAll().Skip((page - 1) * pageSize).Take(pageSize).Where(a => a.SourceId == sourceId).OrderByDescending(a => a.CreatedAt).ToListAsync();
+                    articles = await _unitOfWork.Repository<Article>().GetAll().Skip((page - 1) * pageSize).Take(pageSize).Where(a => a.SourceId == sourceId).OrderBy(a => a.CreatedAt).ToListAsync();
                 }
                 else
                 {
                     var source = await _unitOfWork.Repository<Source>().GetByCondition(s => s.Name == sourceName).FirstOrDefaultAsync();
-                    articles = await _unitOfWork.Repository<Article>().GetAll().Skip((page - 1) * pageSize).Take(pageSize).Where(a => a.SourceId == source.Id).OrderByDescending(a => a.CreatedAt).ToListAsync();
+                    articles = await _unitOfWork.Repository<Article>().GetAll().Skip((page - 1) * pageSize).Take(pageSize).Where(a => a.SourceId == source.Id).OrderBy(a => a.CreatedAt).ToListAsync();
                 }
 
                 if (articles.Count == 0)
@@ -344,7 +344,7 @@ namespace NewsAggregation.Services
 
                 if (refreshToken == null)
                 {
-                    var articlesF = await _unitOfWork.Repository<Article>().GetAll().Take(5).OrderByDescending(a => a.CreatedAt).ToListAsync();
+                    var articlesF = await _unitOfWork.Repository<Article>().GetAll().Take(5).OrderBy(a => a.CreatedAt).ToListAsync();
 
                     return new OkObjectResult(articlesF);
 
@@ -354,7 +354,7 @@ namespace NewsAggregation.Services
 
                 if (user == null)
                 {
-                    var articlesF = await _unitOfWork.Repository<Article>().GetAll().Take(5).OrderByDescending(a => a.CreatedAt).ToListAsync();
+                    var articlesF = await _unitOfWork.Repository<Article>().GetAll().Take(5).OrderBy(a => a.CreatedAt).ToListAsync();
 
                     return new OkObjectResult(articlesF);
                 }
@@ -362,9 +362,9 @@ namespace NewsAggregation.Services
                 var userHistory = await _unitOfWork.Repository<UserHistory>().GetByCondition(uh => uh.UserId == user.Id).ToListAsync();
 
                 // Get most used tags 
-                var tags = userHistory.SelectMany(uh => uh.Tags.Split(",")).GroupBy(t => t).OrderByDescending(t => t.Count()).Select(t => t.Key).Take(5).ToList();
+                var tags = userHistory.SelectMany(uh => uh.Tags.Split(",")).GroupBy(t => t).OrderBy(t => t.Count()).Select(t => t.Key).Take(5).ToList();
 
-                var articles = await _unitOfWork.Repository<Article>().GetAll().Where(a => tags.Any(t => a.Tags.Contains(t))).Take(5).OrderByDescending(a => a.CreatedAt).ToListAsync();
+                var articles = await _unitOfWork.Repository<Article>().GetAll().Where(a => tags.Any(t => a.Tags.Contains(t))).Take(5).OrderBy(a => a.CreatedAt).ToListAsync();
 
                 // Content-Range header
                 _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles 0-4/{articles.Count}");

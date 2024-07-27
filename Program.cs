@@ -108,7 +108,7 @@ ThreadPool.SetMaxThreads(1000, 1000);
 builder.Services.AddControllers();
 
 //builder.Services.AddHostedService<BackgroundNotificationService>();
-builder.Services.AddHostedService<BackgroundArticleService>();
+//builder.Services.AddHostedService<BackgroundArticleService>();
 builder.Services.AddHostedService<ScapeNewsSourcesService>();
 
 builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>(sp => new BackgroundTaskQueue(2000));

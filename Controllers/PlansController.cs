@@ -7,7 +7,6 @@ using NewsAggregation.Services.Interfaces;
 namespace NewsAggregation.Controllers
 {
     [Route("plan")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
     [ApiController]
     public class PlansController : ControllerBase
     {
@@ -24,6 +23,7 @@ namespace NewsAggregation.Controllers
             _plansService = planService;
         }
 
+        [Authorize(Roles = "User,Admin,SuperAdmin")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPlanById(Guid id)
         {
@@ -32,6 +32,7 @@ namespace NewsAggregation.Controllers
         }
 
         [HttpGet("all")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> GetAllPlans(string? range = null)
         {
             var plans = await _plansService.GetAllPlans(range);
@@ -39,6 +40,7 @@ namespace NewsAggregation.Controllers
         }
 
         [HttpGet("allActive")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAllActivePlans(string? range = null)
         {
             var plans = await _plansService.GetAllActivePlans(range);
@@ -46,6 +48,7 @@ namespace NewsAggregation.Controllers
         }
 
         [HttpPost("create")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> CreatePlan([FromBody] PlanCreateDto plan)
         {
             var newPlan = await _plansService.CreatePlan(plan);
@@ -53,6 +56,7 @@ namespace NewsAggregation.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> UpdatePlan(Guid id, [FromBody] PlanCreateDto plan)
         {
             var updatedPlan = await _plansService.UpdatePlan(id, plan);
@@ -60,6 +64,7 @@ namespace NewsAggregation.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> DeletePlan(Guid id)
         {
             await _plansService.DeletePlan(id);

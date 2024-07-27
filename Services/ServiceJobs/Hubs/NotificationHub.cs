@@ -1,4 +1,4 @@
-﻿namespace NewsAggregation.Services.ServiceJobs
+﻿namespace NewsAggregation.Services.ServiceJobs.Hubs
 {
     using Microsoft.AspNetCore.SignalR;
 

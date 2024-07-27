@@ -15,6 +15,7 @@ namespace NewsAggregation.Services.ServiceJobs
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -78,6 +79,18 @@ namespace NewsAggregation.Services.ServiceJobs
                                     .Select(a => a.Title)
                                     .ToListAsync();
 
+                                var duplicateTitles = allTitles
+                                    .GroupBy(x => x)
+                                    .Where(g => g.Count() > 1)
+                                    .Select(y => y.Key)
+                                    .ToList();
+
+                                if (duplicateTitles.Any())
+                                {
+                                  // Remove duplicate titles
+                                  allItems = allItems.Where(i => !duplicateTitles.Contains(i.Title)).ToList();
+                                }
+
                                 // Filter out existing articles and prepare new articles list
                                 foreach (var result in results)
                                 {
@@ -98,12 +111,12 @@ namespace NewsAggregation.Services.ServiceJobs
                                             Views = 0,
                                             Likes = 0,
                                             IsPublished = true,
-                                            PublishedAt = DateTime.UtcNow,
-                                            Tags = string.Join(",", (item.Description ?? string.Empty).Split(' ')
+                                            PublishedAt = DateTime.Parse(item.PubDate).ToUniversalTime(),
+                                            Tags = string.Join(",", (item.Title ?? string.Empty).Split(' ')
                                                 .GroupBy(x => x)
                                                 .OrderByDescending(x => x.Count())
                                                 .Select(x => x.Key)
-                                                .Take(10)
+                                                .Take(item.Title.Split(' ').Length)
                                                 .Where(tag => !string.IsNullOrWhiteSpace(tag))),
                                             CreatedAt = DateTime.UtcNow,
                                             UpdatedAt = DateTime.UtcNow,
@@ -146,7 +159,7 @@ namespace NewsAggregation.Services.ServiceJobs
         {
             _logger.LogInformation("[x] Background News Scrapper Service is starting.");
 
-            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMinutes(5));
+            _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMinutes(2));
 
             await Task.Delay(Timeout.Infinite, stoppingToken);
         }

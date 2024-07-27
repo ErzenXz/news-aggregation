@@ -36,6 +36,8 @@ namespace NewsAggregation.Services
 
                             foreach (var item in feed.Items)
                             {
+
+                                var pubDateAsDateTime = item.PublishDate.DateTime;
                                 var rssItem = new RssArticle
                                 {
                                     Title = item.Title?.Text,
@@ -43,7 +45,7 @@ namespace NewsAggregation.Services
                                     Content = item.Content?.ToString(),
                                     Link = item.Links.FirstOrDefault()?.Uri.ToString(),
                                     Image = GetImageFromItem(item),
-                                    PubDate = item.PublishDate.DateTime.ToString("dd/MM/yyyy HH:mm")
+                                    PubDate = pubDateAsDateTime.ToString()
                                 };
                                 items.Add(rssItem);
                             }

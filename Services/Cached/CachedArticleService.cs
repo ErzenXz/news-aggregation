@@ -5,6 +5,7 @@ using NewsAggregation.DTO.Article;
 using NewsAggregation.Helpers;
 using NewsAggregation.Services.Interfaces;
 using Newtonsoft.Json;
+using System;
 
 namespace NewsAggregation.Services.Cached
 {
@@ -81,6 +82,28 @@ namespace NewsAggregation.Services.Cached
         public Task<IActionResult> GetRecommendetArticles()
         {
             return _decorated.GetRecommendetArticles();
+        }
+
+        public async Task<IActionResult> GetTrendingArticles()
+        {
+            string cacheKey = $"trending-articles";
+            var cachedResult = await _redisCache.GetStringAsync(cacheKey);
+
+            if (!string.IsNullOrEmpty(cachedResult))
+            {
+                var cachedData = JsonConvert.DeserializeObject<dynamic>(cachedResult);
+                return new OkObjectResult(cachedData);
+            }
+
+            var result = await _decorated.GetTrendingArticles();
+
+            var serializedResult = JsonConvert.SerializeObject(result);
+            await _redisCache.SetStringAsync(cacheKey, serializedResult, new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3)
+            });
+
+            return new OkObjectResult(result);
         }
 
         public Task<PagedInfo<ArticleDto>> PagedArticlesView(int page, int pageSize, string searchByTitle)

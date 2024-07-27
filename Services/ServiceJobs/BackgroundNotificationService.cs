@@ -26,7 +26,7 @@ public class BackgroundNotificationService : BackgroundService
 
             try
             {
-                var notifications = await dbContext.Notifications.Where(n => !n.IsRead).ToListAsync();
+                var notifications = await dbContext.Notifications.Where(n => !n.IsRead).AsNoTracking().ToListAsync();
 
                 foreach (var notification in notifications)
                 {

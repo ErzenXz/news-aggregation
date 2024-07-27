@@ -6,27 +6,31 @@ using NewsAggregation.Data;
 using NewsAggregation.DTO;
 using NewsAggregation.Models;
 using NewsAggregation.Services;
+using NewsAggregation.Services.Interfaces;
 using System.Security.Cryptography;
 
 namespace NewsAggregation.Controllers
 {
     [ApiController]
-    [Route("users")]
+    [Route("user")]
     public class UserController : ControllerBase
     {
 
 
         private readonly ILogger<UserController> _logger;
         private readonly DBContext _dBContext;
+        private readonly IUserService _userService;
 
-        public UserController(ILogger<UserController> logger, DBContext dBContext)
+        public UserController(ILogger<UserController> logger, DBContext dBContext, IUserService userService)
         {
             _logger = logger;
             _dBContext = dBContext;
+            _userService = userService;
         }
 
 
         
+         /*
         [HttpGet("{id}"), Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<User> GetUserById(long id)
         {
@@ -114,259 +118,75 @@ namespace NewsAggregation.Controllers
                 yield return user;
             }
         }
+    */
 
-
-        // Get active sessions for a user
         [HttpGet("active-sessions"),
             Authorize(Roles = "User,Admin,SuperAdmin")]
         public async Task<IActionResult> GetActiveSessions()
         {
-            var refreshToken = Request.Cookies["refreshToken"];
+           var sessions = await _userService.GetActiveSessions();
+            return sessions;
+        }
 
-            if (refreshToken == null)
-            {
-                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
-            }
-
-            var user = FindUserByRefreshToken(refreshToken, Request.Headers[HeaderNames.UserAgent].ToString());
-
-            if (user == null)
-            {
-                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
-            }
-
-            var currentTime = DateTime.UtcNow;
-
-            // Find all refresh tokens for the user
-            var refreshTokens = _dBContext.refreshTokens.Where(r => r.UserId == user.Id).ToList();
-
-            var currentRefreshTokenVersion = user.TokenVersion;
-
-            var activeSessions = new List<ActiveSession>();
-
-            // Check if any of the refresh tokens are still active
-
-            foreach (var token in refreshTokens)
-            {
-                if (currentRefreshTokenVersion == token.TokenVersion && token.IsActive)
-                {
-                    // If the token is active, add it to the list
-                    activeSessions.Add(new ActiveSession
-                    {
-                        Id = token.Id,
-                        CreatedAt = token.Created,
-                        Expires = token.Expires,
-                        UserAgent = token.UserAgent,
-                        IpAddress = token.CreatedByIp,
-                        IsActive = token.IsActive
-                    });
-                }
-            }
-
-            // Add Content-Range header
-            Response.Headers.Add("Content-Range", $"active-sessions 0-0/{activeSessions.Count}");
-
-            return Ok(activeSessions);
-
+        [HttpDelete("revoke-session"),
+                       Authorize(Roles = "User,Admin,SuperAdmin")]
+        public async Task<IActionResult> RevokeActiveSession(string? ipAdress, string userAgent)
+        {
+            var response = await _userService.RevokeActiveSession(ipAdress, userAgent);
+            return response;
         }
 
         [HttpPut("{id}"),Authorize(Roles ="User,Admin,SuperAdmin")]
         public async Task<IActionResult> UpdateUser(UserUpdateRequest userUpdateRequest)
         {
-
-            var refreshToken = Request.Cookies["refreshToken"];
-
-            if (refreshToken == null)
-            {
-                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
-            }
-
-            var user = FindUserByRefreshToken(refreshToken, Request.Headers[HeaderNames.UserAgent].ToString());
-            if (user == null)
-            {
-                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
-            }
-
-            if (_dBContext.Users.Any(u => u.Username == userUpdateRequest.Username))
-            {
-                return BadRequest(new { Message = "Username already in use.", Code = 8 });
-            }
-
-            if (_dBContext.Users.Any(u => u.Email == userUpdateRequest.Email))
-            {
-                return BadRequest(new { Message = "Email already in use.", Code = 7 });
-            }
-
-            user.Username = userUpdateRequest.Username;
-            user.FullName = userUpdateRequest.Fullname;
-            user.Email = userUpdateRequest.Email;
-            user.FirstLogin = userUpdateRequest.FirstLogin;
-            user.LastLogin = userUpdateRequest.LastLogin;
-            user.ConnectingIp = userUpdateRequest.ConIP;
-            user.Birthdate = userUpdateRequest.Birthday;
-            user.TimeZone = userUpdateRequest.TimeZone;
-            user.Language = userUpdateRequest.Language;
-
-            await _dBContext.SaveChangesAsync();
-
-            // Add Content-Range header
-            Response.Headers.Add("Content-Range", $"users 0-0/1");
-
-            return Ok(new { Message = "User updated successfully.", Code = 79 });
+            var response = await _userService.UpdateUser(userUpdateRequest);
+            return response;
         }    
-
-        [HttpPatch("update/last-login"), Authorize(Roles = "User,Admin,SuperAdmin")]
-        public async Task<IActionResult> UpdateUserLastLogin()
-        {
-            var refreshToken = Request.Cookies["refreshToken"];
-
-            if (refreshToken == null)
-            {
-                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
-            }
-
-            var user1 = FindUserByRefreshToken(refreshToken, Request.Headers[HeaderNames.UserAgent].ToString());
-
-
-            if (user1 == null)
-            {
-                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
-            }
-
-            user1.LastLogin = DateTime.UtcNow;
-            await _dBContext.SaveChangesAsync();
-
-            // Add Content-Range header
-            Response.Headers.Add("Content-Range", $"users 0-0/1");
-
-            return Ok(new { Message = "Last login updated successfully.", Code = 80 });
-        }
-
-        [HttpPatch("update/connecting-ip"), Authorize(Roles = "User,Admin,SuperAdmin")]
-        public async Task<IActionResult> UpdateUserConnectingIp()
-        {
-            var refreshToken = Request.Cookies["refreshToken"];
-
-            if (refreshToken == null)
-            {
-                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
-            }
-
-            var user1 = FindUserByRefreshToken(refreshToken, Request.Headers[HeaderNames.UserAgent].ToString());
-
-            if (user1 == null)
-            {
-                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
-            }
-
-
-            user1.ConnectingIp = HttpContext.Connection.RemoteIpAddress.ToString();
-            await _dBContext.SaveChangesAsync();
-
-            // Add Content-Range header
-            Response.Headers.Add("Content-Range", $"users 0-0/1");
-
-            return Ok(new { Message = "Connecting IP updated successfully.", Code = 81 });
-        }
 
         [HttpPatch("update/birthdate"), Authorize(Roles = "User,Admin,SuperAdmin")]
         public async Task<IActionResult> UpdateUserBirthdate(DateTime newBirthDay)
         {
-            var refreshToken = Request.Cookies["refreshToken"];
-            if (refreshToken == null)
-            {
-                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
-            }
-            var user = FindUserByRefreshToken(refreshToken, Request.Headers[HeaderNames.UserAgent].ToString());
-
-
-            if (user == null)
-            {
-                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
-            }
-
-            // Check if the new birthdate is valid
-            if (newBirthDay > DateTime.UtcNow)
-            {
-                return BadRequest(new { Message = "Invalid birthdate.", Code = 9 });
-            }
-
-            if (newBirthDay == user.Birthdate)
-            {
-                return BadRequest(new { Message = "Birthdate is the same as the current one.", Code = 15 });
-            }
-
-            user.Birthdate = newBirthDay;
-            await _dBContext.SaveChangesAsync();
-
-            // Add Content-Range header
-            Response.Headers.Add("Content-Range", $"users 0-0/1");
-
-            return Ok(new { Message = "Birthdate updated successfully.", Code = 84 });
+            var response = await _userService.UpdateUserBirthdate(newBirthDay);
+            return response;
         }
 
         [HttpPatch("update/username"), Authorize(Roles = "User,Admin,SuperAdmin")]
         public async Task<IActionResult> UpdateUserUsername(string newUsername)
         {
-            var refreshToken = Request.Cookies["refreshToken"];
-            if (refreshToken == null)
-            {
-                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
-            }
-            var user = FindUserByRefreshToken(refreshToken, Request.Headers[HeaderNames.UserAgent].ToString());
-            if (user == null)
-            {
-                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
-            }
-
-            if (newUsername == null)
-            {
-                   return BadRequest(new { Message = "Username cannot be empty.", Code = 12 });
-            }
-
-            if (_dBContext.Users.Any(u => u.Username == newUsername))
-            {
-                return BadRequest(new { Message = "Username already in use.", Code = 8 });
-            }
-
-            user.Username = newUsername;
-            await _dBContext.SaveChangesAsync();
-
-            // Add Content-Range header
-            Response.Headers.Add("Content-Range", $"users 0-0/1");
-
-            return Ok(new { Message = "Username updated successfully.", Code = 82 });
+            var response = await _userService.UpdateUserUsername(newUsername);
+            return response;
 
         }
 
         [HttpPatch("update/fullname"), Authorize(Roles = "User,Admin,SuperAdmin")]
         public async Task<IActionResult> UpdateUserFullName(string newName)
         {
-            var refreshToken = Request.Cookies["refreshToken"];
-            if (refreshToken == null)
-            {
-                return Unauthorized(new { Message = "Unauthorized to perform this request.", Code = 76 });
-            }
-            var user = FindUserByRefreshToken(refreshToken, Request.Headers[HeaderNames.UserAgent].ToString());
-            if (user == null)
-            {
-                return BadRequest(new { Message = "User not found.", Code = 36 });
-            }
-
-            if (newName == null)
-            {
-                return BadRequest(new { Message = "Full name cannot be empty.", Code = 16 });
-            }
-
-            user.FullName = newName;
-            await _dBContext.SaveChangesAsync();
-
-            // Add Content-Range header
-            Response.Headers.Add("Content-Range", $"users 0-0/1");
-
-            return Ok(new { Message = "Full name updated successfully.", Code = 83 });
+            var response = await _userService.UpdateUserFullName(newName);
+            return response;
         }
 
+        [HttpPatch("update/profile-image"), Authorize(Roles = "User,Admin,SuperAdmin")]
+        public async Task<IActionResult> UpdateProfileImage(string imageUrl)
+        {
+            var response = await _userService.UpdateProfileImage(imageUrl);
+            return response;
+        }
+
+        [HttpGet("view-history"), Authorize(Roles = "User,Admin,SuperAdmin")]
+        public async Task<IActionResult> GetViewHistory(string? range = null)
+        {
+            var response = await _userService.GetViewHistory(range);
+            return response;
+        }
+
+        [HttpGet("saved-articles"), Authorize(Roles = "User,Admin,SuperAdmin")]
+        public async Task<IActionResult> GetSavedArticles(string? range = null)
+        {
+            var response = await _userService.GetSavedArticles(range);
+            return response;
+        }
+
+        /*
         [HttpDelete("delete/id/{id}"), Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> DeleteUserById(long id)
         {
@@ -397,13 +217,15 @@ namespace NewsAggregation.Controllers
             return Ok(new { Message = "User deleted successfully.", Code = 400 });
         }
 
+        */
+
         // Find the user by giving a refresh token
         [NonAction]
-        public User FindUserByRefreshToken(string refreshToken, string userAgent)
+        public User? FindUserByRefreshToken(string refreshToken, string userAgent)
         {
             var currentTime = DateTime.UtcNow;
 
-            var user = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.Expires > currentTime && r.UserAgent == userAgent);
+            var user = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.Expires > currentTime && r.UserAgent == userAgent && r.Revoked == null);
 
             if (user == null)
             {

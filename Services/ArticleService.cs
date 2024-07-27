@@ -378,6 +378,49 @@ namespace NewsAggregation.Services
             }
         }
 
+        public async Task<IActionResult> GetTrendingArticles()
+        {
+            try
+            {
+                var currentTime = DateTime.UtcNow;
+                var last24Hours = currentTime.AddHours(-24);
+
+                var articles = await _unitOfWork.Repository<ArticleStats>()
+                    .GetAll()
+                    .Where(a => a.ViewTime >= last24Hours)
+                    .GroupBy(a => a.ArticleId)
+                    .Select(g => new
+                    {
+                        ArticleId = g.Key,
+                        ViewCount = g.Count()
+                    })
+                    .OrderByDescending(g => g.ViewCount)
+                    .Take(5)
+                    .ToListAsync();
+
+                // Loop through articles and get the article details
+
+                var articleDetails = new List<Article>();
+
+                foreach (var article in articles)
+                {
+                    var art = await _unitOfWork.Repository<Article>().GetById(article.ArticleId);
+                    articleDetails.Add(art);
+                }
+
+                // Content-Range header
+                _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles 0-4/{articles.Count}");
+
+                return new OkObjectResult(articleDetails);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetTrendingArticles");
+                return new StatusCodeResult(500);
+            }
+        }
+
+
 
         public async Task<User?> FindUserByRefreshToken(string refreshToken, string userAgent)
         {
@@ -432,7 +475,6 @@ namespace NewsAggregation.Services
                 return new StatusCodeResult(500);
             }
         }
-
 
         public async Task<IActionResult> AddView(Guid articleId)
         {

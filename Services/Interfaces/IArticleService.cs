@@ -21,6 +21,7 @@ namespace NewsAggregation.Services.Interfaces
         Task<IActionResult> GetArticlesBySource(Guid sourceId, string? sourceName, string? range = null);
 
         Task<IActionResult> GetRecommendetArticles();
+        Task<IActionResult> GetTrendingArticles();
 
         Task<IActionResult> LikeArticle(Guid articleId);
         Task<IActionResult> AddView(Guid articleId);

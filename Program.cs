@@ -23,6 +23,7 @@ using Stripe;
 using SourceService = NewsAggregation.Services.SourceService;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
+using NewsAggregation.Services.ServiceJobs.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,7 +34,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowedOrigins", builder =>
     {
-        builder.WithOrigins("http://localhost:5500", "https://localhost:5500", "http://localhost:5173")
+        builder.WithOrigins("http://localhost:5500", "https://localhost:5500", "http://localhost:5173", "https://sapientia.life", "https://news.erzen.tk")
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials()
@@ -67,7 +68,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserValidationService, UserValidationService>();
 
 
-//builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IPlansService, PlansService>();
@@ -106,9 +107,12 @@ ThreadPool.SetMaxThreads(1000, 1000);
 
 builder.Services.AddControllers();
 
-//builder.Services.AddHostedService<BackgroundNotificationService>();
+builder.Services.AddHostedService<BackgroundNotificationService>();
+builder.Services.AddHostedService<BackgroundArticleService>();
 builder.Services.AddHostedService<ScapeNewsSourcesService>();
-builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>(sp => new BackgroundTaskQueue(100));
+
+builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>(sp => new BackgroundTaskQueue(2000));
+
 builder.Services.AddTransient<SecureMail>();
 builder.Services.AddHostedService<QueueEmailService>();
 
@@ -135,7 +139,8 @@ builder.Services.AddAuthentication().AddJwtBearer(options =>
         ValidateIssuerSigningKey = true,
         ValidateLifetime = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration.GetSection("AppSecurity:Secret").Value!)),
-        RoleClaimType = ClaimTypes.Role
+        RoleClaimType = ClaimTypes.Role,
+        ClockSkew = TimeSpan.Zero
     };
 
     options.Events = new JwtBearerEvents
@@ -215,6 +220,7 @@ app.UseAuthorization();
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapHub<NotificationHub>("/notifications");
+    endpoints.MapHub<NewsHub>("/news");
 });
 
 app.Run();

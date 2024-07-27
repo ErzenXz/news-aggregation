@@ -70,6 +70,15 @@ namespace NewsAggregation.Controllers
         }
 
         [AllowAnonymous]
+        [HttpGet("trending")]
+        public async Task<IActionResult> GetTrendingArticles()
+        {
+            var trendingArticles = await _articleService.GetTrendingArticles();
+            var trendingArticlesList = (OkObjectResult) trendingArticles;
+            return Ok(trendingArticlesList.Value);
+        }
+
+        [AllowAnonymous]
         [HttpGet("category")]
         public async Task<IActionResult> GetArticlesByCategory(int categoryId, string? categoryName, string? range = null)
         {

@@ -333,7 +333,6 @@ namespace NewsAggregation.Services
                     return new OkObjectResult(new { Message = "MFA is required", Code = 1000 });
                 } else
                 {
-
                     SetCookies(newRefreshToken);
 
                 if (oldConIP != GetUserIp())
@@ -698,7 +697,7 @@ namespace NewsAggregation.Services
             // Check to see if the user has logged in successfully before on this device
 
             var ip = GetUserIp();
-            var authLog = _dBContext.authLogs.Where(a => a.IpAddress == ip && a.UserAgent == userAgent && a.Email == user.Email).OrderByDescending(a => a.Date).FirstOrDefault();
+            var authLog = await _dBContext.authLogs.Where(a => a.IpAddress == ip && a.UserAgent == userAgent && a.Email == user.Email).OrderByDescending(a => a.Date).FirstOrDefaultAsync();
 
             if (authLog == null)
             {
@@ -1109,11 +1108,12 @@ namespace NewsAggregation.Services
 
 
         // Find the user by giving a refresh token
+
         public async Task<User?> FindUserByRefreshToken(string refreshToken, string userAgent)
         {
             var currentTime = DateTime.UtcNow;
 
-            var refreshTokenEntry = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.Expires > currentTime && r.UserAgent == userAgent);
+            var refreshTokenEntry = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.Expires > currentTime && r.UserAgent == userAgent && r.Revoked == null);
 
             if (refreshTokenEntry == null)
             {

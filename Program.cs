@@ -107,7 +107,7 @@ ThreadPool.SetMaxThreads(1000, 1000);
 
 builder.Services.AddControllers();
 
-builder.Services.AddHostedService<BackgroundNotificationService>();
+//builder.Services.AddHostedService<BackgroundNotificationService>();
 builder.Services.AddHostedService<BackgroundArticleService>();
 builder.Services.AddHostedService<ScapeNewsSourcesService>();
 

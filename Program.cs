@@ -96,6 +96,8 @@ builder.Services.AddScoped<IBookmarkService, BookmarkService>();
 builder.Services.Decorate<IBookmarkService, CachedBookmarkService>();
 
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.Decorate<ICategoryService, CachedCategoryService>();
+
 builder.Services.AddScoped<IUserPreferenceService, UserPreferenceService>();
 
 builder.Services.AddSignalR(hubOptions =>

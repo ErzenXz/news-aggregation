@@ -82,18 +82,31 @@ public class CachedAdsService : IAdsService
         return new OkObjectResult(result);
     }
 
-    public Task<IActionResult> CreateAd(AdCreateDto adRequest)
+    public async Task<IActionResult> CreateAd(AdCreateDto adRequest)
     {
-        return _decorated.CreateAd(adRequest);
+        return await _decorated.CreateAd(adRequest);
     }
 
-    public Task<IActionResult> UpdateAd(Guid id, AdCreateDto adRequest)
+    public async Task<IActionResult> UpdateAd(Guid id, AdCreateDto adRequest)
     {
-        return _decorated.UpdateAd(id, adRequest);
+        var result = await _decorated.UpdateAd(id, adRequest);
+        
+        if (result is OkResult)
+        {
+            await _redisCache.RemoveAsync($"ad-{id}");
+        }
+        return result;
     }
 
-    public Task<IActionResult> DeleteAd(Guid id)
+    public async Task<IActionResult> DeleteAd(Guid id)
     {
-        return _decorated.DeleteAd(id);
+        var result = await _decorated.DeleteAd(id);
+        
+        if (result is OkResult)
+        {
+            await _redisCache.RemoveAsync($"ad-{id}");
+        }
+
+        return result;
     }
 }

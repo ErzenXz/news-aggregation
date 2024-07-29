@@ -93,6 +93,8 @@ builder.Services.AddScoped<IAdsService, AdsService>();
 builder.Services.Decorate<IAdsService, CachedAdsService>();
 
 builder.Services.AddScoped<IBookmarkService, BookmarkService>();
+builder.Services.Decorate<IBookmarkService, CachedBookmarkService>();
+
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IUserPreferenceService, UserPreferenceService>();
 

@@ -70,11 +70,7 @@ builder.Services.AddScoped<IUserValidationService, UserValidationService>();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
-builder.Services.AddScoped<IPaymentService, PaymentService>();
-builder.Services.AddScoped<IPlansService, PlansService>();
-builder.Services.AddScoped<IAdsService, AdsService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddScoped<ISubscriptionsService, SubscriptionsService>();
 builder.Services.AddScoped<ISourceService, SourceService>();
 builder.Services.AddScoped<IUnitOfWork,UnitOfWork>();
 
@@ -84,7 +80,17 @@ builder.Services.Decorate<IArticleService, CachedArticleService>();
 builder.Services.AddScoped<ICommentService,CommentService>();
 builder.Services.Decorate<ICommentService, CachedCommentService>();
 
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.Decorate<IPaymentService, CachedPaymentService>();
 
+builder.Services.AddScoped<IPlansService, PlansService>();
+builder.Services.Decorate<IPlansService, CachedPlansService>();
+
+builder.Services.AddScoped<ISubscriptionsService, SubscriptionsService>();
+builder.Services.Decorate<ISubscriptionsService, CachedSubscriptionService>();
+
+builder.Services.AddScoped<IAdsService, AdsService>();
+builder.Services.Decorate<IAdsService, CachedAdsService>();
 
 builder.Services.AddScoped<IBookmarkService, BookmarkService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();

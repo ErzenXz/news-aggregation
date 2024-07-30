@@ -1116,7 +1116,10 @@ namespace NewsAggregation.Services
                 return new BadRequestObjectResult(new { Message = "Invalid provider.", Code = 1000 });
             }
 
-            httpContext.Request.Headers.Add("X-Forwarded-Proto", "https");
+            if (!httpContext.Request.Headers.ContainsKey("X-Forwarded-Proto"))
+            {
+                httpContext.Request.Headers["X-Forwarded-Proto"] = "https";
+            }
 
             var properties = new AuthenticationProperties { RedirectUri = "/external-login-callback" };
             return new ChallengeResult(provider, properties);
@@ -1124,7 +1127,10 @@ namespace NewsAggregation.Services
 
         public async Task<IActionResult> LoginProviderCallback(HttpContext httpContext, string provider)
         {
-            httpContext.Request.Headers.Add("X-Forwarded-Proto", "https");
+            if (!httpContext.Request.Headers.ContainsKey("X-Forwarded-Proto"))
+            {
+                httpContext.Request.Headers["X-Forwarded-Proto"] = "https";
+            }
 
             var result = await httpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             if (!result.Succeeded) return new BadRequestObjectResult(new { Message = "Error processing external login." });

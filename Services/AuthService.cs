@@ -1111,7 +1111,7 @@ namespace NewsAggregation.Services
         public async Task<IActionResult> LoginProvider(HttpContext httpContext, string provider)
         {
 
-            if(provider != "Google" || provider != "Discord" || provider != "GitHub")
+            if (!provider.Equals("Google") && !provider.Equals("GitHub") && !provider.Equals("Discord"))
             {
                 return new BadRequestObjectResult(new { Message = "Invalid provider.", Code = 1000 });
             }

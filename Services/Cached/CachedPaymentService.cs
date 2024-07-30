@@ -8,10 +8,10 @@ namespace NewsAggregation.Services.Cached
 {
     public class CachedPaymentService : IPaymentService
     {
-        private readonly IPaymentService _decorated;
+        private readonly PaymentService _decorated;
         private readonly IDistributedCache _redis;
 
-        public CachedPaymentService(IPaymentService paymentService, IDistributedCache redis)
+        public CachedPaymentService(PaymentService paymentService, IDistributedCache redis)
         {
             _decorated = paymentService;
             _redis = redis;
@@ -25,7 +25,7 @@ namespace NewsAggregation.Services.Cached
 
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonConvert.DeserializeObject<dynamic>(cachedResult);
+                return new OkObjectResult(JsonConvert.DeserializeObject<dynamic>(cachedResult));
             }
 
             var result = await _decorated.GetAllPayments(range);
@@ -38,7 +38,7 @@ namespace NewsAggregation.Services.Cached
             });
 
 
-            return result;
+            return new OkObjectResult(result);
         }
 
         public async Task<IActionResult> GetPaymentById(Guid id)
@@ -48,7 +48,7 @@ namespace NewsAggregation.Services.Cached
 
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonConvert.DeserializeObject<dynamic>(cachedResult);
+                return new OkObjectResult(JsonConvert.DeserializeObject<dynamic>(cachedResult));
 
             }
 
@@ -61,7 +61,7 @@ namespace NewsAggregation.Services.Cached
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
             });
 
-            return result;
+            return new OkObjectResult(result);
 
         }
 
@@ -74,13 +74,13 @@ namespace NewsAggregation.Services.Cached
                 await _redis.RemoveAsync($"payment-{id}");
             }
 
-            return result;
+            return new OkObjectResult(result);
         }
 
         public async Task<IActionResult> CreatePayment(PaymentCreateDto paymentRequest)
         {
             var result = await _decorated.CreatePayment(paymentRequest);
-            return result;
+            return new OkObjectResult(result);
         }
 
         public async Task<IActionResult> DeletePayment(Guid id)
@@ -92,7 +92,7 @@ namespace NewsAggregation.Services.Cached
                 await _redis.RemoveAsync($"payment-{id}");
             }
 
-            return result;
+            return new OkObjectResult(result);
         }
     }
 }

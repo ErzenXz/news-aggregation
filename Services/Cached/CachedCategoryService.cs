@@ -18,7 +18,7 @@ public class CachedCategoryService : ICategoryService
     }
     public async Task<IActionResult> CreateCategory(CategoryCreateDto createCategory)
     {
-        return await _decorated.CreateCategory(createCategory);
+        return new OkObjectResult(await _decorated.CreateCategory(createCategory));
     }
     
     public async Task<IActionResult> DeleteCategory(int id)
@@ -30,7 +30,7 @@ public class CachedCategoryService : ICategoryService
             await _redisCache.RemoveAsync($"category-{id}");
         }
 
-        return result;
+        return new OkObjectResult(result);
     }
 
     public async Task<IActionResult> GetCategoryByName(string name)
@@ -86,7 +86,7 @@ public class CachedCategoryService : ICategoryService
             _redisCache.RemoveAsync($"category-{id}");
         }
 
-        return result;
+        return new OkObjectResult(result);
     }
 
     public async Task<IActionResult> GetCategoryById(int id)

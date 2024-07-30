@@ -8,10 +8,10 @@ namespace NewsAggregation.Services.Cached
 {
     public class CachedSubscriptionService : ISubscriptionsService
     {
-        private readonly ISubscriptionsService _decorated;
+        private readonly SubscriptionsService _decorated;
         private readonly IDistributedCache _redis;
 
-        public CachedSubscriptionService(ISubscriptionsService subscriptionsService, IDistributedCache redis)
+        public CachedSubscriptionService(SubscriptionsService subscriptionsService, IDistributedCache redis)
         {
             _decorated = subscriptionsService;
             _redis = redis;
@@ -25,7 +25,7 @@ namespace NewsAggregation.Services.Cached
 
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonConvert.DeserializeObject<dynamic>(cachedResult);
+                return new OkObjectResult(JsonConvert.DeserializeObject<dynamic>(cachedResult));
 
             }
 
@@ -40,7 +40,7 @@ namespace NewsAggregation.Services.Cached
             });
 
 
-            return result;
+            return new OkObjectResult(result);
         }
 
         public async Task<IActionResult> GetAllActiveSubscriptions(string? range = null)
@@ -51,7 +51,7 @@ namespace NewsAggregation.Services.Cached
 
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonConvert.DeserializeObject<dynamic>(cachedResult);
+                return new OkObjectResult(JsonConvert.DeserializeObject<dynamic>(cachedResult));
             }
 
             var result = await _decorated.GetAllActiveSubscriptions(range);
@@ -65,7 +65,7 @@ namespace NewsAggregation.Services.Cached
             });
 
 
-            return result;
+            return new OkObjectResult(result);
         }
 
         public async Task<IActionResult> GetSubscriptionById(Guid id)
@@ -75,7 +75,7 @@ namespace NewsAggregation.Services.Cached
 
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonConvert.DeserializeObject<dynamic>(cachedResult);
+                return new OkObjectResult(JsonConvert.DeserializeObject<dynamic>(cachedResult));
             }
 
             var result = await _decorated.GetSubscriptionById(id);
@@ -89,13 +89,13 @@ namespace NewsAggregation.Services.Cached
             });
 
 
-            return result;
+            return new OkObjectResult(result);
         }
 
         public async Task<IActionResult> CreateSubscription(SubscriptionCreateDto subscriptionRequest)
         {
             var result = await _decorated.CreateSubscription(subscriptionRequest);
-            return result;
+            return new OkObjectResult(result);
         }
 
         public async Task<IActionResult> UpdateSubscription(Guid id, SubscriptionCreateDto subscriptionRequest)
@@ -109,7 +109,7 @@ namespace NewsAggregation.Services.Cached
 
             }
 
-            return result;
+            return new OkObjectResult(result);
         }
 
         public async Task<IActionResult> DeleteSubscription(Guid id)
@@ -122,7 +122,7 @@ namespace NewsAggregation.Services.Cached
                 await _redis.RemoveAsync($"subscription-{id}");
             }
 
-            return result;
+            return new OkObjectResult(result);
         }
     }
 }

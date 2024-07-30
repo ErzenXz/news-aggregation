@@ -47,7 +47,7 @@ public class CachedBookmarkService : IBookmarkService
 
         if (!string.IsNullOrEmpty(cachedResult))
         {
-            return JsonConvert.DeserializeObject<dynamic>(cachedResult);
+            return new OkObjectResult(JsonConvert.DeserializeObject<dynamic>(cachedResult));
         }
 
         var result = await _decorated.GetBookmarksByArticleId(articleId);
@@ -58,7 +58,7 @@ public class CachedBookmarkService : IBookmarkService
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
         });
-        return result;
+        return new OkObjectResult(result);
     }
  
     public async Task<IActionResult> GetBookmarkById(Guid id)
@@ -85,7 +85,7 @@ public class CachedBookmarkService : IBookmarkService
 
     public async Task<IActionResult> CreateBookmark(BookmarkCreateDto bookmark)
     {
-        return await _decorated.CreateBookmark(bookmark);
+        return new OkObjectResult(await _decorated.CreateBookmark(bookmark));
     }
 
     public async Task<IActionResult> DeleteBookmark(Guid id)
@@ -97,6 +97,6 @@ public class CachedBookmarkService : IBookmarkService
             await _redisCache.RemoveAsync($"bookmark-{id}");
         }
 
-        return result;
+        return new OkObjectResult(result);
     }
 }

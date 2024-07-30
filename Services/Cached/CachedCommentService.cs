@@ -37,7 +37,7 @@ namespace NewsAggregation.Services.Cached
 
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonConvert.DeserializeObject<dynamic>(cachedResult);
+                return new OkObjectResult(JsonConvert.DeserializeObject<dynamic>(cachedResult));
             }
 
             var result = await _decorated.GetAllComments(range);
@@ -50,7 +50,7 @@ namespace NewsAggregation.Services.Cached
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3)
             });
 
-            return result;
+            return new OkObjectResult(result);
         }
 
 
@@ -60,7 +60,7 @@ namespace NewsAggregation.Services.Cached
             var cachedResult = _cache.GetString(cacheKey);
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonConvert.DeserializeObject<dynamic>(cachedResult);
+                return new OkObjectResult(JsonConvert.DeserializeObject<dynamic>(cachedResult));
             }
 
             var result = await _decorated.GetCommentById(id);
@@ -71,7 +71,7 @@ namespace NewsAggregation.Services.Cached
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3)
             });
-            return result;
+            return new OkObjectResult(result);
         }
 
         public async Task<IActionResult> GetCommentsByArticleId(Guid articleId)
@@ -81,7 +81,7 @@ namespace NewsAggregation.Services.Cached
 
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonConvert.DeserializeObject<dynamic>(cachedResult);
+                return new OkObjectResult(JsonConvert.DeserializeObject<dynamic>(cachedResult));
             }
 
             var result = await _decorated.GetCommentsByArticleId(articleId);
@@ -92,7 +92,7 @@ namespace NewsAggregation.Services.Cached
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3)
             });
-            return result;
+            return new OkObjectResult(result);
         }
 
         public Task<IActionResult> UpdateComment(Guid id, CommentDto comment)

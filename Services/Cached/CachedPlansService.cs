@@ -8,10 +8,10 @@ namespace NewsAggregation.Services.Cached
 {
     public class CachedPlansService : IPlansService
     {
-        private readonly IPlansService _decorated;
+        private readonly PlansService _decorated;
         private readonly IDistributedCache _redis;
 
-        public CachedPlansService(IPlansService plansService, IDistributedCache redis)
+        public CachedPlansService(PlansService plansService, IDistributedCache redis)
         {
             _decorated = plansService;
             _redis = redis;
@@ -25,7 +25,7 @@ namespace NewsAggregation.Services.Cached
 
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonConvert.DeserializeObject<dynamic>(cachedResult);
+                return new OkObjectResult(JsonConvert.DeserializeObject<dynamic>(cachedResult));
 
             }
 
@@ -38,7 +38,7 @@ namespace NewsAggregation.Services.Cached
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
             });
 
-            return result;
+            return new OkObjectResult(result);
         }
 
         public async Task<IActionResult> GetAllActivePlans(string? range = null)
@@ -49,7 +49,7 @@ namespace NewsAggregation.Services.Cached
 
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonConvert.DeserializeObject<dynamic>(cachedResult);
+                return new OkObjectResult(JsonConvert.DeserializeObject<dynamic>(cachedResult));
 
             }
 
@@ -64,7 +64,7 @@ namespace NewsAggregation.Services.Cached
             });
 
 
-            return result;
+            return new OkObjectResult(result);
         }
 
         public async Task<IActionResult> GetPlanById(Guid id)
@@ -74,7 +74,7 @@ namespace NewsAggregation.Services.Cached
 
             if (!string.IsNullOrEmpty(cachedResult))
             {
-                return JsonConvert.DeserializeObject<dynamic>(cachedResult);
+                return new OkObjectResult(JsonConvert.DeserializeObject<dynamic>(cachedResult));
             }
 
             var result = await _decorated.GetPlanById(id);
@@ -88,13 +88,13 @@ namespace NewsAggregation.Services.Cached
             });
 
 
-            return result;
+            return new OkObjectResult(result);
         }
 
         public async Task<IActionResult> CreatePlan(PlanCreateDto planRequest)
         {
             var result = await _decorated.CreatePlan(planRequest);
-            return result;
+            return new OkObjectResult(result);
         }
 
         public async Task<IActionResult> UpdatePlan(Guid id, PlanCreateDto planRequest)
@@ -106,7 +106,7 @@ namespace NewsAggregation.Services.Cached
                 await _redis.RemoveAsync($"plan-{id}");
             }
 
-            return result;
+            return new OkObjectResult(result);
         }
 
         public async Task<IActionResult> DeletePlan(Guid id)
@@ -118,7 +118,7 @@ namespace NewsAggregation.Services.Cached
                 await _redis.RemoveAsync($"plan-{id}");
             }
 
-            return result;
+            return new OkObjectResult(result);
         }
     }
 }

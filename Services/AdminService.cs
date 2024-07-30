@@ -296,7 +296,7 @@ namespace NewsAggregation.Services
             return Task.FromResult<IActionResult>(new OkObjectResult(new
             {
                 status = "ok",
-                version = "beta-1.1",
+                version = "beta-1.1.1",
                 server = serverInfo
             }));
 

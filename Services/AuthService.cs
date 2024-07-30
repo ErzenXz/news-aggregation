@@ -12,6 +12,8 @@ using System.Text;
 using NewsAggregation.Data;
 using Microsoft.EntityFrameworkCore;
 using OtpNet;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace NewsAggregation.Services
 {
@@ -706,7 +708,7 @@ namespace NewsAggregation.Services
             }
 
 
-            return new OkObjectResult (new { user.FullName, user.Username, user.Email, user.Role,user.ProfilePicture, user.Id, user.TimeZone, user.Language, user.IsEmailVerified, user.IsTwoFactorEnabled });
+            return new OkObjectResult (new { user.FullName, user.Username, user.Email, user.Role,user.ProfilePicture, user.Id, user.TimeZone, user.Language, user.IsEmailVerified, user.IsTwoFactorEnabled, user.IsExternal });
         }
 
 
@@ -1104,6 +1106,129 @@ namespace NewsAggregation.Services
             await _dBContext.SaveChangesAsync();
 
             return new OkObjectResult(new { Message = "Backup codes generated successfully", Code = 1000, BackupCodes = backupCodes });
+        }
+
+        public async Task<IActionResult> LoginProvider(HttpContext httpContext, string provider)
+        {
+            var properties = new AuthenticationProperties { RedirectUri = "/external-login-callback" };
+            return new ChallengeResult(provider, properties);
+        }
+
+        public async Task<IActionResult> LoginProviderCallback(HttpContext httpContext, string provider)
+        {
+            var result = await httpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            if (!result.Succeeded) return new BadRequestObjectResult(new { Message = "Error processing external login." });
+
+            // Retrieve user info from the external login
+            var claims = result.Principal?.Identities.FirstOrDefault()?.Claims;
+            var externalUserId = claims?.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
+            var email = claims?.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
+
+            // Check if the user is added in DB
+
+            var user = _dBContext.Users.FirstOrDefault(u => u.ExternalUserId == externalUserId);
+
+            if (user != null)
+            {
+                // User exists create a refresh token and access token
+
+                var refreshToken = GenerateRefreshToken();
+
+                user.LastLogin = DateTime.UtcNow;
+
+                var currentRefreshTokenVersion = user.TokenVersion;
+
+                // Create a new refresh token
+
+                var refreshTokenObj = new RefreshTokens
+                {
+                    UserId = user.Id,
+                    Token = refreshToken,
+                    Expires = DateTime.UtcNow.AddDays(7),
+                    TokenVersion = user.TokenVersion,
+                    Created = DateTime.UtcNow,
+                    CreatedByIp = GetUserIp(),
+                    UserAgent = httpContext.Request.Headers["User-Agent"].ToString(),
+                    DeviceName = "Unknown"
+                };
+
+                await _dBContext.refreshTokens.AddAsync(refreshTokenObj);
+
+                await _dBContext.SaveChangesAsync();
+
+                // Generate new access token
+
+                string newAccessToken = CreateAccessToken(user);
+
+                // Set cookies
+                SetCookies(refreshToken);
+
+                // Return the access token
+                return new OkObjectResult(new { Message = "User logged in successfully!", Code = 38, AccessToken = newAccessToken, newRefreshToken = refreshToken });
+            } else
+            {
+                // User does not exist, add the user to the database
+                var newUser = new User
+                {
+                    Email = email,
+                    Username = email,
+                    FullName = claims?.FirstOrDefault(x => x.Type == ClaimTypes.Name)?.Value,
+                    TimeZone = "UTC",
+                    Language = "en",
+                    ProfilePicture = claims?.FirstOrDefault(x => x.Type == "picture")?.Value,
+                    Role = "User",
+                    IsEmailVerified = true,
+                    IsTwoFactorEnabled = false,
+                    CreatedAt = DateTime.UtcNow,
+                    LastLogin = DateTime.UtcNow,
+                    TokenVersion = 1,
+                    ConnectingIp = GetUserIp(),
+                    Password = BCrypt.Net.BCrypt.HashPassword(""),
+                    ExternalProvider = provider,
+                    ExternalUserId = externalUserId,
+                    IsExternal = true
+                };
+
+                await _dBContext.Users.AddAsync(newUser);
+
+                await _dBContext.SaveChangesAsync();
+
+                // User exists create a refresh token and access token
+
+                var refreshToken = GenerateRefreshToken();
+
+                var currentRefreshTokenVersion = user.TokenVersion;
+
+                // Create a new refresh token
+
+                var refreshTokenObj = new RefreshTokens
+                {
+                    UserId = user.Id,
+                    Token = refreshToken,
+                    Expires = DateTime.UtcNow.AddDays(7),
+                    TokenVersion = user.TokenVersion,
+                    Created = DateTime.UtcNow,
+                    CreatedByIp = GetUserIp(),
+                    UserAgent = httpContext.Request.Headers["User-Agent"].ToString(),
+                    DeviceName = "Unknown"
+                };
+
+                await _dBContext.refreshTokens.AddAsync(refreshTokenObj);
+
+                await _dBContext.SaveChangesAsync();
+
+                // Generate new access token
+
+                string newAccessToken = CreateAccessToken(user);
+
+                // Set cookies
+                SetCookies(refreshToken);
+
+                // Return the access token
+                return new OkObjectResult(new { Message = "User logged in successfully!", Code = 38, AccessToken = newAccessToken, newRefreshToken = refreshToken });
+            }
+
+
         }
 
 

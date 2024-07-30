@@ -171,6 +171,18 @@ builder.Services.AddAuthentication().AddJwtBearer(options =>
             }
         }
     };
+}).AddGoogle(options =>
+{
+    options.ClientId = "285450690747-af4hbh7ueknchu5lfjf2mu5hoate80d1.apps.googleusercontent.com";
+    options.ClientSecret = "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";
+}).AddGitHub(options =>
+{
+    options.ClientId = "Ov23list4GG30Kih8HFw";
+    options.ClientSecret = "a9302bb44a6c9e8a14e7c77195e5c4654f2b8b35";
+}).AddFacebook(options =>
+{
+    options.AppId = "1190384618829985";
+    options.AppSecret = "4efe052abd2829dc3eaa45930e5285a5";
 });
 
 

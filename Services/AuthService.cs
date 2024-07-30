@@ -794,7 +794,6 @@ namespace NewsAggregation.Services
                 SameSite = SameSiteMode.None,
                 Domain = ".erzen.tk"
             };
-            httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsTk);
 
             // Set cookie for .erzen.xyz
             var cookieOptionsXyz = new CookieOptions
@@ -803,7 +802,7 @@ namespace NewsAggregation.Services
                 Expires = DateTime.UtcNow.AddDays(7),
                 Secure = true,
                 SameSite = SameSiteMode.None,
-                Domain = ".erzen.xyz"
+                Domain = ".sapientia.life"
             };
 
             // Set cookie for localhost
@@ -816,6 +815,7 @@ namespace NewsAggregation.Services
                 Domain = "localhost"
             };
 
+            httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsTk);
             httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsXyz);
             httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsLocal);
 
@@ -1230,7 +1230,6 @@ namespace NewsAggregation.Services
 
 
         }
-
 
         // Find the user by giving a refresh token
 

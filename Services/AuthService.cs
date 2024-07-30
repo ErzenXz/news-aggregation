@@ -1110,12 +1110,28 @@ namespace NewsAggregation.Services
 
         public async Task<IActionResult> LoginProvider(HttpContext httpContext, string provider)
         {
+
+            if (!provider.Equals("Google") && !provider.Equals("GitHub") && !provider.Equals("Discord"))
+            {
+                return new BadRequestObjectResult(new { Message = "Invalid provider.", Code = 1000 });
+            }
+
+            if (!httpContext.Request.Headers.ContainsKey("X-Forwarded-Proto"))
+            {
+                httpContext.Request.Headers["X-Forwarded-Proto"] = "https";
+            }
+
             var properties = new AuthenticationProperties { RedirectUri = "/external-login-callback" };
             return new ChallengeResult(provider, properties);
         }
 
         public async Task<IActionResult> LoginProviderCallback(HttpContext httpContext, string provider)
         {
+            if (!httpContext.Request.Headers.ContainsKey("X-Forwarded-Proto"))
+            {
+                httpContext.Request.Headers["X-Forwarded-Proto"] = "https";
+            }
+
             var result = await httpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             if (!result.Succeeded) return new BadRequestObjectResult(new { Message = "Error processing external login." });
 
@@ -1123,6 +1139,9 @@ namespace NewsAggregation.Services
             var claims = result.Principal?.Identities.FirstOrDefault()?.Claims;
             var externalUserId = claims?.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
             var email = claims?.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
+
+            // Get provider from the external login
+            provider = claims?.FirstOrDefault(x => x.Type == "Provider")?.Value;
 
             // Check if the user is added in DB
 

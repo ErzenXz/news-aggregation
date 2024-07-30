@@ -24,10 +24,9 @@ using SourceService = NewsAggregation.Services.SourceService;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using NewsAggregation.Services.ServiceJobs.Hubs;
+using Microsoft.AspNetCore.Authentication.Google;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
 
 // Allow CORS
 builder.Services.AddCors(options =>
@@ -40,6 +39,15 @@ builder.Services.AddCors(options =>
             .AllowCredentials()
             .WithExposedHeaders("Content-Range");
     });
+
+    options.AddPolicy("AllowExternalProviders",
+        builder =>
+        {
+            builder.WithOrigins("https://accounts.google.com", "https://github.com", "https://www.facebook.com")
+                   .AllowAnyHeader()
+                   .AllowAnyMethod()
+                   .AllowCredentials();
+        });
 });
 
 var mapperConfiguration = new MapperConfiguration(
@@ -179,10 +187,10 @@ builder.Services.AddAuthentication().AddJwtBearer(options =>
 {
     options.ClientId = "Ov23list4GG30Kih8HFw";
     options.ClientSecret = "a9302bb44a6c9e8a14e7c77195e5c4654f2b8b35";
-}).AddFacebook(options =>
+}).AddDiscord(options =>
 {
-    options.AppId = "1190384618829985";
-    options.AppSecret = "4efe052abd2829dc3eaa45930e5285a5";
+    options.ClientId = "1267900731936084050";
+    options.ClientSecret = "3d65e39e7f2aebc18d82b1f11eb9106307f7e23d74007178943575d0b6ec4513";
 });
 
 
@@ -232,6 +240,7 @@ app.MapScalarUi();
 app.UseHttpsRedirection();
 
 app.UseCors("AllowedOrigins");
+app.UseCors("AllowExternalProviders");
 
 app.MapControllers();
 

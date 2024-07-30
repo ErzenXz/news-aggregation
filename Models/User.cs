@@ -28,6 +28,10 @@ namespace NewsAggregation.Models
         public string? TotpSecret { get; set; }
         public string? BackupCodes { get; set; }
 
+        public string? ExternalProvider { get; set; }
+        public string? ExternalUserId { get; set; }
+        public bool IsExternal { get; set; } = false;
+
 
 
         // Personalization

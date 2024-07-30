@@ -24,22 +24,30 @@ using SourceService = NewsAggregation.Services.SourceService;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using NewsAggregation.Services.ServiceJobs.Hubs;
+using Microsoft.AspNetCore.Authentication.Google;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
 
 // Allow CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowedOrigins", builder =>
     {
-        builder.WithOrigins("http://localhost:5500", "https://localhost:5500", "http://localhost:5173", "https://sapientia.life", "https://news.erzen.tk")
+        builder.WithOrigins("http://localhost:5500", "https://localhost:5500", "http://localhost:5173", "https://sapientia.life", "https://grafana.sapientia.life/", "https://news.erzen.tk")
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials()
             .WithExposedHeaders("Content-Range");
     });
+
+    options.AddPolicy("AllowExternalProviders",
+        builder =>
+        {
+            builder.WithOrigins("https://accounts.google.com", "https://github.com", "https://www.facebook.com")
+                   .AllowAnyHeader()
+                   .AllowAnyMethod()
+                   .AllowCredentials();
+        });
 });
 
 var mapperConfiguration = new MapperConfiguration(
@@ -70,11 +78,7 @@ builder.Services.AddScoped<IUserValidationService, UserValidationService>();
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
-builder.Services.AddScoped<IPaymentService, PaymentService>();
-builder.Services.AddScoped<IPlansService, PlansService>();
-builder.Services.AddScoped<IAdsService, AdsService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddScoped<ISubscriptionsService, SubscriptionsService>();
 builder.Services.AddScoped<ISourceService, SourceService>();
 builder.Services.AddScoped<IUnitOfWork,UnitOfWork>();
 
@@ -84,10 +88,24 @@ builder.Services.Decorate<IArticleService, CachedArticleService>();
 builder.Services.AddScoped<ICommentService,CommentService>();
 builder.Services.Decorate<ICommentService, CachedCommentService>();
 
+builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.Decorate<IPaymentService, CachedPaymentService>();
 
+builder.Services.AddScoped<IPlansService, PlansService>();
+builder.Services.Decorate<IPlansService, CachedPlansService>();
+
+builder.Services.AddScoped<ISubscriptionsService, SubscriptionsService>();
+builder.Services.Decorate<ISubscriptionsService, CachedSubscriptionService>();
+
+builder.Services.AddScoped<IAdsService, AdsService>();
+builder.Services.Decorate<IAdsService, CachedAdsService>();
 
 builder.Services.AddScoped<IBookmarkService, BookmarkService>();
+builder.Services.Decorate<IBookmarkService, CachedBookmarkService>();
+
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.Decorate<ICategoryService, CachedCategoryService>();
+
 builder.Services.AddScoped<IUserPreferenceService, UserPreferenceService>();
 
 builder.Services.AddSignalR(hubOptions =>
@@ -161,6 +179,18 @@ builder.Services.AddAuthentication().AddJwtBearer(options =>
             }
         }
     };
+}).AddGoogle(options =>
+{
+    options.ClientId = "285450690747-af4hbh7ueknchu5lfjf2mu5hoate80d1.apps.googleusercontent.com";
+    options.ClientSecret = "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";
+}).AddGitHub(options =>
+{
+    options.ClientId = "Ov23list4GG30Kih8HFw";
+    options.ClientSecret = "a9302bb44a6c9e8a14e7c77195e5c4654f2b8b35";
+}).AddDiscord(options =>
+{
+    options.ClientId = "1267900731936084050";
+    options.ClientSecret = "3d65e39e7f2aebc18d82b1f11eb9106307f7e23d74007178943575d0b6ec4513";
 });
 
 
@@ -210,6 +240,7 @@ app.MapScalarUi();
 app.UseHttpsRedirection();
 
 app.UseCors("AllowedOrigins");
+app.UseCors("AllowExternalProviders");
 
 app.MapControllers();
 

@@ -108,14 +108,19 @@ namespace NewsAggregation.Services
             }
         }
 
-        public async Task<IActionResult> GetAllCategories()
+        public async Task<IActionResult> GetAllCategories(string? range = null)
         {
+            var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
+            var page = queryParams.Page;
+            var pageSize = queryParams.PerPage;
+
+
             try
             {
-                var categories = await _unitOfWork.Repository<Category>().GetAll().ToListAsync();
+                var categories = await _unitOfWork.Repository<Category>().GetAll().Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
-                var categoriesDto = _mapper.Map<List<CategoryCreateDto>>(categories);
-                return new OkObjectResult(categoriesDto);
+                return new ObjectResult(categories);
+
             }
             catch (Exception ex)
             {

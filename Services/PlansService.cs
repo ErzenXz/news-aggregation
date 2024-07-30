@@ -29,7 +29,7 @@ namespace NewsAggregation.Services
                     .Take(queryParams.PerPage)
                     .ToListAsync();
 
-                return new OkObjectResult(plans);
+                return new OkObjectResult(new {plans});
             }
             catch (Exception ex)
             {
@@ -52,11 +52,13 @@ namespace NewsAggregation.Services
                     .Take(queryParams.PerPage)
                     .ToListAsync();
 
-                return new OkObjectResult(plans);
+                return new OkObjectResult(new { plans });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetPlans");
+                // Return 500 error with message
+                _logger.LogError(ex.Message, "Error in GetAllActivePlans");
                 return new StatusCodeResult(500);
             }
         }

@@ -23,7 +23,7 @@
         {
             using (var scope = _serviceScopeFactory.CreateScope())
             {
-                _logger.LogInformation("[x] BG-ArticleService is working.");
+                _logger.LogInformation("[x] BG-ArticleService is working. :D");
                 var dbContext = scope.ServiceProvider.GetRequiredService<DBContext>();
 
                 try

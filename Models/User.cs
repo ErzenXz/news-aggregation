@@ -41,7 +41,6 @@ namespace NewsAggregation.Models
 
         public ICollection<RefreshTokens> RefreshTokens { get; set; } = new List<RefreshTokens>();
         public ICollection<Subscriptions> Subscriptions { get; set; } = new List<Subscriptions>();
-        //public ICollection<Bookmark> Bookmarks { get; set; } = new List<Bookmark>();
 
 
 

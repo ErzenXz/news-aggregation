@@ -25,6 +25,8 @@ using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using NewsAggregation.Services.ServiceJobs.Hubs;
 using Microsoft.AspNetCore.Authentication.Google;
+using AspNetCoreRateLimit;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -68,7 +70,7 @@ builder.Services.AddAutoMapper(typeof(AutoMapperConfiguration));
 builder.Services.AddStackExchangeRedisCache(options =>
 {
     options.Configuration = builder.Configuration.GetSection("Redis:Configuration").Value;
-    //options.InstanceName = builder.Configuration.GetSection("Redis:InstanceName").Value;
+
 });
 
 
@@ -125,9 +127,10 @@ ThreadPool.SetMaxThreads(1000, 1000);
 
 builder.Services.AddControllers();
 
-//builder.Services.AddHostedService<BackgroundNotificationService>();
-//builder.Services.AddHostedService<BackgroundArticleService>();
 builder.Services.AddHostedService<ScapeNewsSourcesService>();
+
+builder.Services.AddHostedService<BackgroundNotificationService>();
+builder.Services.AddHostedService<BackgroundArticleService>();
 
 builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>(sp => new BackgroundTaskQueue(2000));
 
@@ -148,7 +151,19 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 
-builder.Services.AddAuthentication().AddJwtBearer(options =>
+// Configure rate limiting services
+
+builder.Services.AddMemoryCache();
+builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+builder.Services.AddInMemoryRateLimiting();
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -218,6 +233,24 @@ builder.Services.AddDbContext<DBContext>(options =>
     options.UseNpgsql(connectionString);
 });
 
+
+
+builder.Services.AddHealthChecks()
+    .AddNpgSql(connectionString, name: "PostgreSQL",
+        failureStatus: HealthStatus.Degraded,
+        tags: new[] { "db", "life" })
+    .AddRedis(builder.Configuration.GetSection("Redis:Configuration").Value);
+
+builder.Services.AddHealthChecksUI(setup =>
+{
+    setup.AddHealthCheckEndpoint("PostgreSQL and other services", "/health");
+    setup.SetEvaluationTimeInSeconds(30);
+    setup.MaximumHistoryEntriesPerEndpoint(60); 
+    setup.SetApiMaxActiveRequests(1);
+})
+.AddInMemoryStorage();
+
+
 var app = builder.Build();
 
 // Enable middleware to get FORWARDED headers
@@ -235,6 +268,16 @@ c.DefaultModelExpandDepth(0);
 c.SwaggerEndpoint("/swagger/v1/swagger.json", "News Aggregation");
 });
 
+// Security
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.Add("X-Frame-Options", "DENY");
+    context.Response.Headers.Add("X-XSS-Protection", "1; mode=block");
+    await next();
+});
+
 app.MapScalarUi();
 
 app.UseHttpsRedirection();
@@ -246,12 +289,32 @@ app.MapControllers();
 
 app.UseRouting();
 
+app.UseIpRateLimiting();
+
+app.UseAuthentication();
+
 app.UseAuthorization();
+
+
+
+app.UseExceptionHandler("/Home/Error");
+app.UseHsts();
+
+builder.Services.AddLogging(config =>
+{
+    config.AddConsole();
+    config.AddDebug();
+});
 
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapHub<NotificationHub>("/notifications");
     endpoints.MapHub<NewsHub>("/news");
+    endpoints.MapHealthChecks("/health");
+    endpoints.MapHealthChecksUI(options =>
+    {
+        options.UIPath = "/health-ui";
+    });
 });
 
 app.Run();

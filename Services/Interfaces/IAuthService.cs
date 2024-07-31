@@ -20,7 +20,7 @@ namespace NewsAggregation.Services.Interfaces
         public Task<IActionResult> VerifyMfa(string email, string code);
         public Task<IActionResult> GenerateBackupCodes();
         public Task<IActionResult> LoginProvider(HttpContext httpContext, string provider);
-        public Task<IActionResult> LoginProviderCallback(HttpContext httpContext, string provider);
+        public Task<IActionResult> LoginProviderCallback(HttpContext httpContext);
 
 
         public string CreateAccessToken(User user);

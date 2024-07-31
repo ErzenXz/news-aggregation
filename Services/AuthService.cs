@@ -53,7 +53,7 @@ namespace NewsAggregation.Services
                 return new BadRequestObjectResult(new { Message = "Password must be between 8 and 100 characters.", Code = 5 });
             }
 
-            if (_dBContext.Users.Any(u => u.Email == userRequest.Email))
+            if (_dBContext.Users.Any(u => u.Email == userRequest.Email.ToLower()))
             {
                 return new BadRequestObjectResult(new { Message = "Email already in use.", Code = 7 });
             }
@@ -63,13 +63,13 @@ namespace NewsAggregation.Services
                 return new BadRequestObjectResult(new { Message = "Birthdate is required.", Code = 6 });
             }
 
-            if (_dBContext.Users.Any(u => u.Username == userRequest.Username))
+            if (_dBContext.Users.Any(u => u.Username == userRequest.Username.ToLower()))
             {
                 return new BadRequestObjectResult(new { Message = "Username already in use.", Code = 8 });
             }
 
             string passwordHashed = BCrypt.Net.BCrypt.HashPassword(userRequest.Password);
-            string email = userRequest.Email;
+            string email = userRequest.Email.ToLower();
 
             var refreshToken = GenerateRefreshToken();
 
@@ -85,14 +85,14 @@ namespace NewsAggregation.Services
             }
 
             user.Id = Guid.NewGuid();
-            user.Email = email;
+            user.Email = email.ToLower();
             user.Password = passwordHashed;
             user.FirstLogin = DateTime.UtcNow;
             user.LastLogin = DateTime.UtcNow;
             user.ConnectingIp = GetUserIp();
             user.Birthdate = userRequest.Birthdate;
             user.Role = "User";
-            user.Username = userRequest.Username;
+            user.Username = userRequest.Username.ToLower();
             user.FullName = userRequest.FullName;
             user.Language = userRequest.Language;
             user.TimeZone = userRequest.TimeZone;
@@ -171,7 +171,7 @@ namespace NewsAggregation.Services
             }
 
             // Check if user exists in database
-            var user = _dBContext.Users.FirstOrDefault(u => u.Email == userRequest.Email);
+            var user = _dBContext.Users.FirstOrDefault(u => u.Email == userRequest.Email.ToLower());
             if (user == null)
             {
                 return new BadRequestObjectResult(new { Message = "User not found.", Code = 36 });
@@ -590,14 +590,9 @@ namespace NewsAggregation.Services
 
         public async Task<IActionResult> ChangePassword(ChangePasswordRequest changePasswordRequest)
         {
-            if (changePasswordRequest.Email == null || changePasswordRequest.OldPassword == null || changePasswordRequest.NewPassword == null)
+            if (changePasswordRequest.OldPassword == null || changePasswordRequest.NewPassword == null)
             {
-                return new BadRequestObjectResult(new { Message = "Email, old password and new password are required.", Code = 203 });
-            }
-
-            if (changePasswordRequest.Email.Length < 5 || changePasswordRequest.Email.Length > 100)
-            {
-                return new BadRequestObjectResult(new { Message = "Email must be between 5 and 100 characters.", Code = 4 });
+                return new BadRequestObjectResult(new { Message = "Old password and new password are required.", Code = 203 });
             }
 
             if (changePasswordRequest.OldPassword.Length < 8 || changePasswordRequest.OldPassword.Length > 100)
@@ -611,7 +606,11 @@ namespace NewsAggregation.Services
             }
 
             // Check if user exists in database
-            var user = _dBContext.Users.FirstOrDefault(u => u.Email == changePasswordRequest.Email);
+            var refreshToken2 = _httpContextAccessor.HttpContext.Request.Cookies["refreshToken"];
+            var userAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString();
+
+            var user = await FindUserByRefreshToken(refreshToken2, userAgent);
+
             if (user == null)
             {
                 return new BadRequestObjectResult(new { Message = "User not found.", Code = 36 });
@@ -1125,7 +1124,7 @@ namespace NewsAggregation.Services
             return new ChallengeResult(provider, properties);
         }
 
-        public async Task<IActionResult> LoginProviderCallback(HttpContext httpContext, string provider)
+        public async Task<IActionResult> LoginProviderCallback(HttpContext httpContext)
         {
             if (!httpContext.Request.Headers.ContainsKey("X-Forwarded-Proto"))
             {
@@ -1141,7 +1140,7 @@ namespace NewsAggregation.Services
             var email = claims?.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
 
             // Get provider from the external login
-            provider = claims?.FirstOrDefault(x => x.Type == "Provider")?.Value;
+            var provider = claims?.FirstOrDefault(x => x.Type == "Provider")?.Value;
 
             // Check if the user is added in DB
 

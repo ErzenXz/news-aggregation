@@ -207,9 +207,9 @@ namespace PersonalPodcast.Controllers
         }
 
         [HttpPost("external-login-callback")]
-        public async Task<IActionResult> LoginProviderCallback(string provider)
+        public async Task<IActionResult> LoginProviderCallback()
         {
-            var response = await _authService.LoginProviderCallback(HttpContext, provider);
+            var response = await _authService.LoginProviderCallback(HttpContext);
             if (response != null)
             {
                 return response;

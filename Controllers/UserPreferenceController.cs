@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using NewsAggregation.DTO.UserPreferences;
 using NewsAggregation.Services;
 using NewsAggregation.Services.Interfaces;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 namespace NewsAggregation.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("preferences")]
     public class UserPreferencesController : ControllerBase
     {
         private readonly IUserPreferenceService _userPreferenceService;
@@ -19,36 +20,37 @@ namespace NewsAggregation.Controllers
             _userPreferenceService = userPreferenceService;
         }
 
-        [HttpPost("CreateUserPreferences")]
+        [HttpPost("add")]
         public async Task<ActionResult<UserPreferencesCreateDto>> CreateUserPreferences(UserPreferencesCreateDto createUserPreferences)
         {
             var createdUserPreferences = await _userPreferenceService.CreateUserPreferences(createUserPreferences);
             return Ok(createdUserPreferences);
         }
 
-        [HttpDelete("DeleteUserPreferences/{id}")]
+        [HttpDelete("remove/{id}")]
         public async Task<IActionResult> DeleteUserPreferences(Guid id)
         {
             await _userPreferenceService.DeleteUserPreferences(id);
             return NoContent();
         }
 
-        [HttpGet("GetUserPreferencesById/{id}")]
-        public async Task<ActionResult<UserPreferencesCreateDto>> GetUserPreferencesById(Guid id)
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetUserPreferencesById(Guid id)
         {
             var userPreferences = await _userPreferenceService.GetUserPreferencesById(id);
             return Ok(userPreferences);
         }
 
-        [HttpGet("GetAllUserPreferences")]
-        public async Task<ActionResult<List<UserPreferencesCreateDto>>> GetAllUserPreferences()
+
+        [HttpGet("all")]
+        public async Task<IActionResult> GetAllPreferences(string? range = null)
         {
-            var userPreferences = await _userPreferenceService.GetAllUserPreferences();
+            var userPreferences = await _userPreferenceService.GetAllPreferences(range);
             return Ok(userPreferences);
         }
 
-        [HttpPut("UpdateUserPreferences/{id}")]
-        public async Task<ActionResult<UserPreferencesCreateDto>> UpdateUserPreferences(Guid id, [FromBody] UserPreferencesCreateDto updateUserPreferences)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateUserPreferences(Guid id, [FromBody] UserPreferencesCreateDto updateUserPreferences)
         {
             var updatedUserPreferences = await _userPreferenceService.UpdateUserPreferences(id, updateUserPreferences);
             return Ok(updatedUserPreferences);

@@ -8,15 +8,13 @@ namespace NewsAggregation.Models
     {
         public Guid Id { get; set; }
 
-        public Guid UserId { get; set; }
         [ForeignKey("UserId")]
+        public Guid UserId { get; set; }
         public User User { get; set; }
 
-        public int CategoryId { get; set; }
         [ForeignKey("CategoryId")]
+        public int CategoryId { get; set; }
         public Category? Category { get; set; }
-
-        public string Tags { get; set; }
 
     }
 }

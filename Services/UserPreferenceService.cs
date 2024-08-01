@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using News_aggregation.Entities;
+using NewsAggregation.Data;
 using NewsAggregation.Data.UnitOfWork;
 using NewsAggregation.DTO.UserPreferences;
 using NewsAggregation.Models;
@@ -15,29 +17,57 @@ namespace NewsAggregation.Services
 {
     public class UserPreferenceService : IUserPreferenceService
     {
-        private readonly IUnitOfWork _unitOfWork;
-        private readonly IMapper _mapper;
+        private readonly DBContext _dBContext;
         private readonly ILogger<AuthService> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public UserPreferenceService(IMapper mapper, IUnitOfWork unitOfWork, ILogger<AuthService> logger)
+        public UserPreferenceService(DBContext dBContext, ILogger<AuthService> logger, IHttpContextAccessor httpContextAccessor)
         {
-            _mapper = mapper;
-            _unitOfWork = unitOfWork;
+            _dBContext = dBContext;
             _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<IActionResult> CreateUserPreferences(UserPreferencesCreateDto createUserPreferencesDto)
         {
             try
             {
-                var userPreferences = _mapper.Map<UserPreference>(createUserPreferencesDto);
+                var httpContex = _httpContextAccessor.HttpContext;
 
-                _unitOfWork.Repository<UserPreference>().Create(userPreferences);
+                var refreshToken = httpContex.Request.Cookies["refreshToken"];
+                var userAgent = httpContex.Request.Headers["User-Agent"].ToString();
 
-                await _unitOfWork.CompleteAsync();
+                if (refreshToken == null)
+                {
+                    return new UnauthorizedObjectResult(new { Message = "Unauthorized to perform this request.", Code = 76 });
+                }
 
-                var createdUserPreferencesDto = _mapper.Map<UserPreferencesCreateDto>(userPreferences);
-                return new OkObjectResult(createdUserPreferencesDto);
+                var user = await FindUserByRefreshToken(refreshToken, userAgent);
+
+                if (user == null)
+                {
+                    return new UnauthorizedObjectResult(new { Message = "Unauthorized to perform this request.", Code = 76 });
+                }
+
+
+                var userPreferences = new UserPreference
+                {
+                    UserId = user.Id,
+                    CategoryId = createUserPreferencesDto.CategoryId
+                };
+
+                // Check if user already has a preference with the same category
+                var existingUserPreference = await _dBContext.UserPreferences.FirstOrDefaultAsync(u => u.UserId == user.Id && u.CategoryId == createUserPreferencesDto.CategoryId);
+
+                if (existingUserPreference != null)
+                {
+                    return new BadRequestObjectResult(new { Message = "User already has a preference with the same category", Code = 1000 });
+                }
+
+                await _dBContext.UserPreferences.AddAsync(userPreferences);
+                await _dBContext.SaveChangesAsync();
+                return new OkObjectResult(new { Message = "User Preferences Created Successfully", Code = 1000 });
+
             }
             catch (Exception ex)
             {
@@ -48,43 +78,57 @@ namespace NewsAggregation.Services
 
         public async Task<IActionResult> DeleteUserPreferences(Guid id)
         {
+            var httpContex = _httpContextAccessor.HttpContext;
+
+            var refreshToken = httpContex.Request.Cookies["refreshToken"];
+            var userAgent = httpContex.Request.Headers["User-Agent"].ToString();
+
+            if (refreshToken == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "Unauthorized to perform this request.", Code = 76 });
+            }
+
+            var user = await FindUserByRefreshToken(refreshToken, userAgent);
+
+            if (user == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "Unauthorized to perform this request.", Code = 76 });
+            }
+
             try
             {
-                var userPreferencesToDelete = await _unitOfWork.Repository<UserPreference>().GetById(id);
-
-                if (userPreferencesToDelete != null)
-                {
-                    _unitOfWork.Repository<UserPreference>().Delete(userPreferencesToDelete);
-                    await _unitOfWork.CompleteAsync();
-                    return new OkResult();
-                }
-                else
-                {
-                    _logger.LogWarning($"User Preferences with id {id} not found.");
-                    return new NotFoundResult();
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in Deleting User Preferences");
-                return new StatusCodeResult(500);
-            }
-        }
-
-        public async Task<IActionResult> GetUserPreferencesById(Guid id)
-        {
-            try
-            {
-                var userPreferences = await _unitOfWork.Repository<UserPreference>().GetById(id);
-
+                var userPreferences = await _dBContext.UserPreferences.FirstOrDefaultAsync(u => u.Id == id);
                 if (userPreferences == null)
                 {
                     _logger.LogWarning($"User Preferences with id {id} not found.");
                     return new NotFoundResult();
                 }
 
-                var userPreferencesDto = _mapper.Map<UserPreferencesCreateDto>(userPreferences);
-                return new OkObjectResult(userPreferencesDto);
+                _dBContext.UserPreferences.Remove(userPreferences);
+                await _dBContext.SaveChangesAsync();
+
+                return new OkObjectResult(new { Message = "User Preferences Deleted Successfully", Code = 200 });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in DeleteUserPreferences");
+                return new StatusCodeResult(500);
+            }
+
+        }
+
+        public async Task<IActionResult> GetUserPreferencesById(Guid id)
+        {
+            try
+            {
+                var userPreferences = await _dBContext.UserPreferences.FirstOrDefaultAsync(u => u.Id == id);
+                if (userPreferences == null)
+                {
+                    _logger.LogWarning($"User Preferences with id {id} not found.");
+                    return new NotFoundResult();
+                }
+
+                return new OkObjectResult(userPreferences);
             }
             catch (Exception ex)
             {
@@ -93,47 +137,143 @@ namespace NewsAggregation.Services
             }
         }
 
-        public async Task<IActionResult> GetAllUserPreferences()
+        [HttpGet("mine"), Authorize(Roles = "User,Admin,SuperAdmin")]
+        public async Task<IActionResult> GetAllUserPreferences(string? range = null)
         {
+            var httpContext = _httpContextAccessor.HttpContext;
+            var refreshToken = httpContext?.Request.Cookies["refreshToken"];
+            var userAgent = httpContext?.Request.Headers.UserAgent.ToString();
+
+            if (refreshToken == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "Unauthorized to perform this request.", Code = 76 });
+            }
+
+            var user = await FindUserByRefreshToken(refreshToken, userAgent);
+
+            if (user == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "Unauthorized to perform this request.", Code = 76 });
+            }
+
             try
             {
-                var userPreferences = await _unitOfWork.Repository<UserPreference>().GetAll().ToListAsync();
+                var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
+                var page = queryParams.Page;
+                var pageSize = queryParams.PerPage;
 
-                var userPreferencesDto = _mapper.Map<List<UserPreferencesCreateDto>>(userPreferences);
-                return new OkObjectResult(userPreferencesDto);
+                var userPreferences = await _dBContext.UserPreferences
+                    .Where(u => u.UserId == user.Id)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                var userPreferenceList = new List<UserPreferencesCreateDto>();
+                foreach ( var userP in userPreferences)
+                {
+                    userPreferenceList.Add(new UserPreferencesCreateDto
+                    {
+                        CategoryId = userP.CategoryId,
+                    });
+                }
+
+                return new OkObjectResult(userPreferenceList);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetAllUserPreferences");
+                return new BadRequestObjectResult(new { Message = "An error occurred while processing your request.", Code = 500 });
+            }
+        }
+
+
+        public async Task<IActionResult> GetAllPreferences(string? range = null)
+        {
+            var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
+            var page = queryParams.Page;
+            var pageSize = queryParams.PerPage;
+
+            try
+            {
+                var userPreferences = await _dBContext.UserPreferences.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+                return new OkObjectResult(userPreferences);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetAllPreferences");
                 return new StatusCodeResult(500);
             }
         }
 
-        public async Task<IActionResult> UpdateUserPreferences(Guid id, UserPreferencesCreateDto updateUserPreferencesDto)
+        public async Task<IActionResult> UpdateUserPreferences(Guid id, UserPreferencesCreateDto updateUserPreferencesDto)  
         {
+            var httpContex = _httpContextAccessor.HttpContext;
+
+            var refreshToken = httpContex.Request.Cookies["refreshToken"];
+            var userAgent = httpContex.Request.Headers["User-Agent"].ToString();
+
+            if (refreshToken == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "Unauthorized to perform this request.", Code = 76 });
+            }
+
+            var user = await FindUserByRefreshToken(refreshToken, userAgent);
+
+            if (user == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "Unauthorized to perform this request.", Code = 76 });
+            }
+
             try
             {
-                var userPreferences = await _unitOfWork.Repository<UserPreference>().GetById(id);
+                var userPreferences = await _dBContext.UserPreferences.FirstOrDefaultAsync(u => u.Id == id);
                 if (userPreferences == null)
                 {
                     _logger.LogWarning($"User Preferences with id {id} not found.");
                     return new NotFoundResult();
                 }
 
-                userPreferences.UserId = updateUserPreferencesDto.UserId;
                 userPreferences.CategoryId = updateUserPreferencesDto.CategoryId;
-                userPreferences.Tags = updateUserPreferencesDto.Tags;
 
-                await _unitOfWork.CompleteAsync();
+                _dBContext.UserPreferences.Update(userPreferences);
+                await _dBContext.SaveChangesAsync();
 
-                var updatedUserPreferencesDto = _mapper.Map<UserPreferencesCreateDto>(userPreferences);
-                return new OkObjectResult(updatedUserPreferencesDto);
+                return new OkObjectResult(new { Message = "User Preferences Updated Successfully", Code = 200 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in UpdateUserPreferences");
                 return new StatusCodeResult(500);
             }
+        }
+
+        public async Task<User?> FindUserByRefreshToken(string refreshToken, string userAgent)
+        {
+            var currentTime = DateTime.UtcNow;
+
+            var refreshTokenEntry = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.Expires > currentTime && r.UserAgent == userAgent && r.Revoked == null);
+
+            if (refreshTokenEntry == null)
+            {
+                return null;
+            }
+
+            var userId = refreshTokenEntry.UserId;
+            var refreshTokenVersion = refreshTokenEntry.TokenVersion;
+
+            var user = await _dBContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+            {
+                return null;
+            }
+
+            if (user.TokenVersion != refreshTokenVersion)
+            {
+                return null;
+            }
+
+            return user;
         }
     }
 }

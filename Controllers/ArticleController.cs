@@ -21,7 +21,7 @@ namespace NewsAggregation.Controllers
 
         [Authorize(Roles = "Admin,SuperAdmin")]
         [HttpPost("create")]
-        public async Task<ActionResult<ArticleCreateDto>> CreateArticle(ArticleCreateDto createArticle)
+        public async Task<ActionResult<ArticleCreateDto>> CreateArticle([FromBody] ArticleCreateDto createArticle)
         {
             var createdArticle = await _articleService.CreateArticle(createArticle);
             return Ok(createdArticle);
@@ -101,6 +101,7 @@ namespace NewsAggregation.Controllers
                 return StatusCode(500, "Unexpected result type");
             }
         }
+
         [AllowAnonymous]
         [HttpGet("tag")]
         public async Task<IActionResult> GetArticlesByTag(string? tagName, string? range = null)
@@ -161,6 +162,15 @@ namespace NewsAggregation.Controllers
         {
             var result = await _articleService.AddView(articleId);
             return Ok(result);
+        }
+
+        [AllowAnonymous]
+        [HttpPost("search")]
+        public async Task<IActionResult> SearchArticlesAsync(string query, string? range = null)
+        {
+            var articles = await _articleService.SearchArticlesAsync(query, range);
+            
+            return Ok(articles);
         }
 
     }

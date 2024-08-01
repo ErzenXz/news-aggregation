@@ -27,6 +27,9 @@ using NewsAggregation.Services.ServiceJobs.Hubs;
 using Microsoft.AspNetCore.Authentication.Google;
 using AspNetCoreRateLimit;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.DependencyInjection;
+using Nest;
+using NewsAggregation.Services.ServiceJobs.Email.Deprecated;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,7 +38,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowedOrigins", builder =>
     {
-        builder.WithOrigins("http://localhost:5500", "https://localhost:5500", "http://localhost:5173", "https://sapientia.life", "https://grafana.sapientia.life/", "https://news.erzen.tk")
+        builder.WithOrigins("http://localhost:5500", "https://localhost:5500", "http://localhost:5173", "https://sapientia.life", "https://grafana.sapientia.life/", "https://news.erzen.tk", "https://dev.sapientia.life", "https://*.sapientia.life", "https://*.erzen.tk")
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials()
@@ -45,7 +48,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowExternalProviders",
         builder =>
         {
-            builder.WithOrigins("https://accounts.google.com", "https://github.com", "https://www.facebook.com")
+            builder.WithOrigins("https://accounts.google.com", "https://github.com", "https://discord.com")
                    .AllowAnyHeader()
                    .AllowAnyMethod()
                    .AllowCredentials();
@@ -131,11 +134,6 @@ builder.Services.AddHostedService<ScapeNewsSourcesService>();
 
 builder.Services.AddHostedService<BackgroundNotificationService>();
 builder.Services.AddHostedService<BackgroundArticleService>();
-
-builder.Services.AddSingleton<IBackgroundTaskQueue, BackgroundTaskQueue>(sp => new BackgroundTaskQueue(2000));
-
-builder.Services.AddTransient<SecureMail>();
-builder.Services.AddHostedService<QueueEmailService>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -251,6 +249,24 @@ builder.Services.AddHealthChecksUI(setup =>
 .AddInMemoryStorage();
 
 
+// Add ElasticSearch
+builder.Services.AddSingleton<ElasticsearchClientFactory>();
+builder.Services.AddSingleton<IElasticClient>(sp => sp.GetRequiredService<ElasticsearchClientFactory>().GetClient());
+
+builder.Services.AddLogging(config =>
+{
+    config.AddConsole();
+    config.AddDebug();
+});
+
+builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
+builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection("RabbitMQSettings"));
+
+builder.Services.AddSingleton<RabbitMQService>();
+builder.Services.AddSingleton<EmailQueueService>();
+builder.Services.AddHostedService<RabbitMQService>();
+
+
 var app = builder.Build();
 
 // Enable middleware to get FORWARDED headers
@@ -296,15 +312,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 
-
 app.UseExceptionHandler("/Home/Error");
 app.UseHsts();
-
-builder.Services.AddLogging(config =>
-{
-    config.AddConsole();
-    config.AddDebug();
-});
 
 app.UseEndpoints(endpoints =>
 {

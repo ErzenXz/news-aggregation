@@ -15,6 +15,7 @@ using NewsAggregation.Models;
 using NewsAggregation.Data;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using NewsAggregation.Models.Stats;
+using Nest;
 
 namespace NewsAggregation.Services
 {
@@ -25,14 +26,16 @@ namespace NewsAggregation.Services
         private readonly ILogger<AuthService> _logger;
         private readonly DBContext _dBContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IElasticClient _elasticClient;
 
-        public ArticleService(IMapper mapper, IUnitOfWork unitOfWork, ILogger<AuthService> logger, DBContext dbContext, IHttpContextAccessor httpContextAccessor)
+        public ArticleService(IMapper mapper, IUnitOfWork unitOfWork, ILogger<AuthService> logger, DBContext dbContext, IHttpContextAccessor httpContextAccessor, IElasticClient elasticClient)
         {
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _logger = logger;
             _dBContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
+            _elasticClient = elasticClient;
         }
 
 
@@ -67,6 +70,10 @@ namespace NewsAggregation.Services
                 {
                     _unitOfWork.Repository<Article>().Delete(articleToDelete);
                     await _unitOfWork.CompleteAsync();
+
+                    // Remove article from elastic search
+                    await _elasticClient.DeleteAsync<Article>(id);
+
                     return new OkResult();
                 }
                 else
@@ -114,7 +121,7 @@ namespace NewsAggregation.Services
             try
             {
                 var articles = await _unitOfWork.Repository<Article>().GetAll().OrderByDescending(a => a.CreatedAt).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-                    
+
 
                 // Get 3-5 random ads
                 var ads = await _unitOfWork.Repository<Ads>().GetAll().OrderBy(a => Guid.NewGuid()).Take(new Random().Next(3, 5)).ToListAsync();
@@ -158,6 +165,10 @@ namespace NewsAggregation.Services
                 await _unitOfWork.CompleteAsync();
 
                 var updatedArticleDto = _mapper.Map<ArticleUpdateDto>(article);
+
+                // Update article in elastic search
+                await _elasticClient.UpdateAsync<Article>(id, u => u.Doc(article));
+
                 return new OkObjectResult(updatedArticleDto);
             }
             catch (Exception ex)
@@ -167,40 +178,12 @@ namespace NewsAggregation.Services
             }
         }
 
-        public async Task<PagedInfo<ArticleDto>> PagedArticlesView(int page, int pageSize, string searchByTitle)
-        {
-            try
-            {
-                var articles = _unitOfWork.Repository<Article>().GetAll();
-
-                articles = articles.WhereIf(!string.IsNullOrEmpty(searchByTitle), a => a.Title.Contains(searchByTitle));
-
-                var totalCount = await articles.CountAsync();
-                var pagedArticles = await articles.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
-
-                var mappedArticles = _mapper.Map<List<ArticleDto>>(pagedArticles);
-
-                return new PagedInfo<ArticleDto>
-                {
-                    TotalCount = totalCount,
-                    Page = page,
-                    PageSize = pageSize,
-                    Items = mappedArticles
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in GetPagedArticles");
-                throw;
-            }
-        }
-
         public async Task<IActionResult> GetArticlesByCategory(int categoryId, string? categoryName, string? range = null)
         {
             try
             {
 
-                if(categoryId != 0 && categoryName != null)
+                if (categoryId != 0 && categoryName != null)
                 {
                     _logger.LogWarning("Both categoryId and categoryName are provided. Please provide only one.");
                     return new BadRequestObjectResult(new { Message = "Both categoryId and categoryName are provided. Please provide only one." });
@@ -501,7 +484,8 @@ namespace NewsAggregation.Services
 
                     _unitOfWork.Repository<ArticleStats>().Create(articleStats);
                     await _unitOfWork.CompleteAsync();
-                } else
+                }
+                else
                 {
                     var articleStats = new ArticleStats
                     {
@@ -556,5 +540,58 @@ namespace NewsAggregation.Services
             }
         }
 
+
+        public async Task<IEnumerable<Article>> SearchArticlesAsync(string query, string? range = null)
+        {
+
+            var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
+            var page = queryParams.Page;
+            var pageSize = queryParams.PerPage;
+
+            if (page == 0)
+            {
+
+            } else
+            {
+                page -= 1;
+            }
+
+            var response = await _elasticClient.SearchAsync<Article>(s => s
+                    .From(page)
+                    .Size(pageSize)
+                    .Query(q => q
+                        .MultiMatch(m => m
+                            .Fields(f => f
+                                .Field(p => p.Title, 2.0)
+                                .Field(p => p.Content))
+                            .Query(query)))
+                    .Highlight(h => h
+                        .Fields(
+                            h => h.Field(p => p.Title),
+                            h => h.Field(p => p.Content))
+                        .PreTags("<em>")
+                        .PostTags("</em>")));
+
+            if (response.IsValid)
+            {
+                foreach (var hit in response.Hits)
+                {
+                    var article = hit.Source;
+                    if (hit.Highlight.TryGetValue("title", out var titleHighlights))
+                    {
+                        article.Title = string.Join(" ", titleHighlights);
+                    }
+                    if (hit.Highlight.TryGetValue("content", out var contentHighlights))
+                    {
+                        article.Content = string.Join(" ", contentHighlights);
+                    }
+                }
+
+                return response.Documents;
+            }
+            return Enumerable.Empty<Article>();
+        }
+
     }
+
 }

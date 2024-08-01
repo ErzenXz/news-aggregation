@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NewsAggregation.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NewsAggregation.Migrations
 {
     [DbContext(typeof(DBContext))]
-    partial class DBContextModelSnapshot : ModelSnapshot
+    [Migration("20240801180911_Updated UserPreferences")]
+    partial class UpdatedUserPreferences
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -57,7 +60,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Ads", (string)null);
+                    b.ToTable("Ads");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Notification", b =>
@@ -87,7 +90,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Notifications", (string)null);
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Payment", b =>
@@ -133,7 +136,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasIndex("SubscriptionId");
 
-                    b.ToTable("Payments", (string)null);
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Plans", b =>
@@ -172,7 +175,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Plans", (string)null);
+                    b.ToTable("Plans");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Security.AccountSecurity", b =>
@@ -200,7 +203,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("accountSecurity", (string)null);
+                    b.ToTable("accountSecurity");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Security.AuthLogs", b =>
@@ -226,7 +229,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("authLogs", (string)null);
+                    b.ToTable("authLogs");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Security.IpMitigations", b =>
@@ -246,7 +249,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ipMitigations", (string)null);
+                    b.ToTable("ipMitigations");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Security.PasswordChanges", b =>
@@ -271,7 +274,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("passwordChanges", (string)null);
+                    b.ToTable("passwordChanges");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Security.RefreshTokens", b =>
@@ -321,7 +324,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("refreshTokens", (string)null);
+                    b.ToTable("refreshTokens");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Security.ResetEmail", b =>
@@ -348,7 +351,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("resetEmails", (string)null);
+                    b.ToTable("resetEmails");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Security.VerifyEmail", b =>
@@ -375,7 +378,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("verifyEmails", (string)null);
+                    b.ToTable("verifyEmails");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Source", b =>
@@ -404,7 +407,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Sources", (string)null);
+                    b.ToTable("Sources");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Stats.ArticleStats", b =>
@@ -434,7 +437,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ArticleStats", (string)null);
+                    b.ToTable("ArticleStats");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Subscriptions", b =>
@@ -468,7 +471,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Subscriptions", (string)null);
+                    b.ToTable("Subscriptions");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.User", b =>
@@ -560,7 +563,7 @@ namespace NewsAggregation.Migrations
                     b.HasIndex("Username")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.UserHistory", b =>
@@ -589,7 +592,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("WatchHistories", (string)null);
+                    b.ToTable("WatchHistories");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.UserPreference", b =>
@@ -610,7 +613,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserPreferences", (string)null);
+                    b.ToTable("UserPreferences");
                 });
 
             modelBuilder.Entity("News_aggregation.Entities.Article", b =>
@@ -677,7 +680,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasIndex("SourceId");
 
-                    b.ToTable("Articles", (string)null);
+                    b.ToTable("Articles");
                 });
 
             modelBuilder.Entity("News_aggregation.Entities.Bookmark", b =>
@@ -698,7 +701,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Bookmarks", (string)null);
+                    b.ToTable("Bookmarks");
                 });
 
             modelBuilder.Entity("News_aggregation.Entities.Category", b =>
@@ -719,7 +722,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("News_aggregation.Entities.Comment", b =>
@@ -750,7 +753,7 @@ namespace NewsAggregation.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Comments", (string)null);
+                    b.ToTable("Comments");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Notification", b =>
@@ -853,7 +856,7 @@ namespace NewsAggregation.Migrations
                         .IsRequired();
 
                     b.HasOne("NewsAggregation.Models.User", "User")
-                        .WithMany("UserPreferences")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -933,8 +936,6 @@ namespace NewsAggregation.Migrations
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("Subscriptions");
-
-                    b.Navigation("UserPreferences");
                 });
 
             modelBuilder.Entity("News_aggregation.Entities.Article", b =>

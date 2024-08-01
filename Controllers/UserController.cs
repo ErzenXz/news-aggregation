@@ -20,12 +20,14 @@ namespace NewsAggregation.Controllers
         private readonly ILogger<UserController> _logger;
         private readonly DBContext _dBContext;
         private readonly IUserService _userService;
+        private readonly IUserPreferenceService _userPreferenceService;
 
-        public UserController(ILogger<UserController> logger, DBContext dBContext, IUserService userService)
+        public UserController(ILogger<UserController> logger, DBContext dBContext, IUserService userService, IUserPreferenceService userPreferenceService)
         {
             _logger = logger;
             _dBContext = dBContext;
             _userService = userService;
+            _userPreferenceService = userPreferenceService;
         }
 
 
@@ -184,6 +186,19 @@ namespace NewsAggregation.Controllers
         {
             var response = await _userService.GetSavedArticles(range);
             return response;
+        }
+
+        [HttpGet("view-preferences"), Authorize(Roles = "User,Admin,SuperAdmin")]
+        public async Task<IActionResult> GetAllUserPreferences(string? range = null)
+        {
+            var userPreferences = await _userPreferenceService.GetAllUserPreferences(range);
+
+            if (userPreferences == null)
+            {
+                return BadRequest(new { Message = "User preferences not found.", Code = 36 });
+            }
+
+            return Ok(userPreferences);
         }
 
         /*

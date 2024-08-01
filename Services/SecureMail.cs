@@ -2,7 +2,7 @@
 {
     using Microsoft.AspNetCore.Http.HttpResults;
     using Microsoft.AspNetCore.Mvc;
-    using NewsAggregation.Services.ServiceJobs.Email;
+    using NewsAggregation.Services.ServiceJobs.Email.Deprecated;
     using System;
     using System.Net.Mail;
 

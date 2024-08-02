@@ -1208,8 +1208,8 @@ namespace NewsAggregation.Services
                 // Set cookies
                 SetCookies(refreshToken);
 
-                // Return the access token
-                return new OkObjectResult(new { Message = "User logged in successfully!", Code = 38, AccessToken = newAccessToken, newRefreshToken = refreshToken });
+                var redirectUrl = $"https://localhost:5173/auth-callback?accessToken={newAccessToken}&refreshToken={refreshToken}";
+                return new RedirectResult(redirectUrl);
             } else
             {
                 // User does not exist, add the user to the database
@@ -1270,7 +1270,8 @@ namespace NewsAggregation.Services
                 SetCookies(refreshToken);
 
                 // Return the access token
-                return new OkObjectResult(new { Message = "User logged in successfully!", Code = 38, AccessToken = newAccessToken, newRefreshToken = refreshToken });
+                var redirectUrl = $"https://localhost:5173/auth-callback?accessToken={newAccessToken}&refreshToken={refreshToken}";
+                return new RedirectResult(redirectUrl);
             }
 
 

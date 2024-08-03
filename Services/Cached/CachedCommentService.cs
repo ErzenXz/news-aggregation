@@ -104,7 +104,29 @@ namespace NewsAggregation.Services.Cached
         {
             return _decorated.ReportComment(commentReport);
         }
+    
+        public async Task<IActionResult> GetAllReportedComments(string? range = null)
+        {
+            string cacheKey = $"reportedComments-{range}";
+            var cachedResult = _cache.GetString(cacheKey);
 
+            if (!string.IsNullOrEmpty(cachedResult))
+            {
+                return new OkObjectResult(JsonConvert.DeserializeObject<dynamic>(cachedResult));
+            }
+
+            var result = await _decorated.GetAllReportedComments(range);
+
+
+            var serializedResult = JsonConvert.SerializeObject(result);
+
+            _cache.SetString(cacheKey, serializedResult, new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3)
+            });
+
+            return new OkObjectResult(result);
+        }
 
     }
 }

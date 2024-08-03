@@ -26,16 +26,16 @@ namespace NewsAggregation.Services
         private readonly ILogger<AuthService> _logger;
         private readonly DBContext _dBContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        //private readonly IElasticClient _elasticClient;
+        private readonly IElasticClient _elasticClient;
 
-        public ArticleService(IMapper mapper, IUnitOfWork unitOfWork, ILogger<AuthService> logger, DBContext dbContext, IHttpContextAccessor httpContextAccessor /*IElasticClient elasticClient*/)
+        public ArticleService(IMapper mapper, IUnitOfWork unitOfWork, ILogger<AuthService> logger, DBContext dbContext, IHttpContextAccessor httpContextAccessor, IElasticClient elasticClient)
         {
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _logger = logger;
             _dBContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
-            //_elasticClient = elasticClient;
+            _elasticClient = elasticClient;
         }
 
 
@@ -540,12 +540,6 @@ namespace NewsAggregation.Services
             }
         }
 
-        public Task<IEnumerable<Article>> SearchArticlesAsync(string query, string? range = null)
-        {
-            throw new NotImplementedException();
-        }
-
-        /*
         public async Task<IEnumerable<Article>> SearchArticlesAsync(string query, string? range = null)
         {
 
@@ -596,8 +590,6 @@ namespace NewsAggregation.Services
             }
             return Enumerable.Empty<Article>();
         }
-
-        */
 
     }
 

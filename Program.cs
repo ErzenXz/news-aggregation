@@ -67,14 +67,6 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
-    builder.Services.AddScoped<IUrlHelper>(x =>
-    {
-        var actionContext = x.GetService<IActionContextAccessor>()
-                              .ActionContext;
-        return new UrlHelper(actionContext);
-    });
-
 builder.Services.AddAutoMapper(typeof(AutoMapperConfiguration));
 
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -129,6 +121,9 @@ builder.Services.AddSignalR(hubOptions =>
 
 builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddSingleton<RssService>();
+
+builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
+builder.Services.AddScoped<IUrlHelperFactory, UrlHelperFactory>();
 
 // Increse the max theards for the ThreadPool
 

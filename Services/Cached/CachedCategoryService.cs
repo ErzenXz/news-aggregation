@@ -57,7 +57,7 @@ public class CachedCategoryService : ICategoryService
 
     public async Task<IActionResult> GetAllCategories(string? range=null)
     {
-        string cacheKey = $"range-{range}";
+        string cacheKey = $"categories-{range}";
         var cachedResult = await _redisCache.GetStringAsync(cacheKey);
 
         if (!string.IsNullOrEmpty(cachedResult))

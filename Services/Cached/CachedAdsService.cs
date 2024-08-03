@@ -40,7 +40,7 @@ public class CachedAdsService : IAdsService
 
     public async Task<IActionResult> GetAllAds(string? range = null)
     {
-        string cacheKey = $"range-{range}";
+        string cacheKey = $"ads-{range}";
         var cachedResult = await _redisCache.GetStringAsync(cacheKey);
 
         if (!string.IsNullOrEmpty(cachedResult))

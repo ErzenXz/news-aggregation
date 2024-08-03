@@ -27,14 +27,16 @@ namespace NewsAggregation.Services
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthService> _logger;
         private readonly EmailQueueService _emailQueueService;
+        private readonly IUrlHelper _urlHelper;
 
 
-        public AuthService(DBContext dbContext, IHttpContextAccessor httpContextAccessor, IConfiguration configuration, EmailQueueService emailQueueService)
+        public AuthService(DBContext dbContext, IHttpContextAccessor httpContextAccessor, IConfiguration configuration, EmailQueueService emailQueueService, IUrlHelperFactory urlHelperFactory, IActionContextAccessor actionContextAccessor)
         {
             _dBContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
             _configuration = configuration;
             _emailQueueService = emailQueueService;
+            _urlHelper = urlHelperFactory.GetUrlHelper(actionContextAccessor.ActionContext);
         }
 
         public async Task<IActionResult> Register(UserRegisterRequest userRequest)
@@ -1147,7 +1149,7 @@ namespace NewsAggregation.Services
                 httpContext.Request.Headers["X-Forwarded-Proto"] = "https";
             }
 
-            var properties = new AuthenticationProperties { RedirectUri = "/external-login-callback" };
+            var properties = new AuthenticationProperties { RedirectUri = _urlHelper.Action("LoginProviderCallback") };
             return new ChallengeResult(provider, properties);
         }
 
@@ -1165,6 +1167,8 @@ namespace NewsAggregation.Services
             var claims = result.Principal?.Identities.FirstOrDefault()?.Claims;
             var externalUserId = claims?.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
             var email = claims?.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
+            //var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
+            //var surname = result.Principal.FindFirst(ClaimTypes.Surname)?.Value;
 
             // Get provider from the external login
             var provider = claims?.FirstOrDefault(x => x.Type == "Provider")?.Value;
@@ -1208,8 +1212,8 @@ namespace NewsAggregation.Services
                 // Set cookies
                 SetCookies(refreshToken);
 
-                // Return the access token
-                return new OkObjectResult(new { Message = "User logged in successfully!", Code = 38, AccessToken = newAccessToken, newRefreshToken = refreshToken });
+                var redirectUrl = $"https://localhost:5173/auth-callback?accessToken={newAccessToken}&refreshToken={refreshToken}";
+                return new RedirectResult(redirectUrl);
             } else
             {
                 // User does not exist, add the user to the database
@@ -1270,7 +1274,8 @@ namespace NewsAggregation.Services
                 SetCookies(refreshToken);
 
                 // Return the access token
-                return new OkObjectResult(new { Message = "User logged in successfully!", Code = 38, AccessToken = newAccessToken, newRefreshToken = refreshToken });
+                var redirectUrl = $"https://localhost:5173/auth-callback?accessToken={newAccessToken}&refreshToken={refreshToken}";
+                return new RedirectResult(redirectUrl);
             }
 
 

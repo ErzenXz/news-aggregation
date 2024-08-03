@@ -67,7 +67,6 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 
 
 builder.Services.AddHttpContextAccessor();
-
 builder.Services.AddAutoMapper(typeof(AutoMapperConfiguration));
 
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -122,6 +121,9 @@ builder.Services.AddSignalR(hubOptions =>
 
 builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddSingleton<RssService>();
+
+builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
+builder.Services.AddScoped<IUrlHelperFactory, UrlHelperFactory>();
 
 // Increse the max theards for the ThreadPool
 
@@ -250,8 +252,8 @@ builder.Services.AddHealthChecksUI(setup =>
 
 
 // Add ElasticSearch
-builder.Services.AddSingleton<ElasticsearchClientFactory>();
-builder.Services.AddSingleton<IElasticClient>(sp => sp.GetRequiredService<ElasticsearchClientFactory>().GetClient());
+//builder.Services.AddSingleton<ElasticsearchClientFactory>();
+//builder.Services.AddSingleton<IElasticClient>(sp => sp.GetRequiredService<ElasticsearchClientFactory>().GetClient());
 
 builder.Services.AddLogging(config =>
 {

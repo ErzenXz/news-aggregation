@@ -20,7 +20,7 @@ public class CachedBookmarkService : IBookmarkService
 
     public async Task<IActionResult> GetAllBookmarks(string? range = null)
     {
-        string cacheKey = $"range-{range}";
+        string cacheKey = $"bookmarks-{range}";
         var cachedResult = await _redisCache.GetStringAsync(cacheKey);
 
         if (!string.IsNullOrEmpty(cachedResult))

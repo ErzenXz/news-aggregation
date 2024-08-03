@@ -14,4 +14,5 @@ public interface ICommentService
     Task<IActionResult> CreateComment(CommentCreateDto comment);
     Task<IActionResult> UpdateComment(Guid id, CommentDto comment);
     Task<IActionResult> DeleteComment(Guid id);
+    Task<IActionResult> ReportComment(CommentReportDto commentReportDto);
 }

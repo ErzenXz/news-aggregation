@@ -37,7 +37,7 @@ public class CommentService : ICommentService
             _logger.LogError(e, "Error in GetCommentsByArticle");
             return new StatusCodeResult(500);
         }
-        
+
     }
 
     public async Task<IActionResult> GetAllComments(string? range = null)
@@ -45,7 +45,7 @@ public class CommentService : ICommentService
         var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
         var page = queryParams.Page;
         var pageSize = queryParams.PerPage;
-        
+
         try
         {
             var comments = await _unitOfWork.Repository<Comment>().GetAll()
@@ -64,7 +64,7 @@ public class CommentService : ICommentService
             return new StatusCodeResult(500);
         }
     }
-    
+
     public async Task<IActionResult> GetCommentById(Guid id)
     {
         try
@@ -94,14 +94,14 @@ public class CommentService : ICommentService
         try
         {
             var commentToCreate = _mapper.Map<Comment>(comment);
-            
+
             //commentToCreate.Id = Guid.NewGuid();
-            
+
             _unitOfWork.Repository<Comment>().Create(commentToCreate);
             await _unitOfWork.CompleteAsync();
 
             var createdComment = _mapper.Map<CommentDto>(commentToCreate);
-            
+
             return new OkObjectResult(createdComment);
         }
         catch (Exception e)
@@ -109,7 +109,7 @@ public class CommentService : ICommentService
             _logger.LogError(e, "Error in CreateComment");
             return new StatusCodeResult(500);
         }
-        
+
     }
 
     public async Task<IActionResult> UpdateComment(Guid id, CommentDto comment)
@@ -128,6 +128,7 @@ public class CommentService : ICommentService
             {
                 commentToUpdate.Content = comment.Content;
                 
+
                 await _unitOfWork.CompleteAsync();
 
                 return new OkResult();
@@ -138,7 +139,7 @@ public class CommentService : ICommentService
             _logger.LogError(e, "Error in UpdateComment");
             return new StatusCodeResult(500);
         }
-        
+
 
     }
 
@@ -161,7 +162,7 @@ public class CommentService : ICommentService
 
                 return new ObjectResult(commentToDelete.Id);
             }
-            
+
         }
         catch (Exception e)
         {
@@ -169,6 +170,36 @@ public class CommentService : ICommentService
             return new StatusCodeResult(500);
         }
     }
-    
-    
+
+    public async Task<IActionResult> ReportComment(CommentReportDto commentReportDto)
+    {
+        try
+        {
+            
+            var comment = await _unitOfWork.Repository<Comment>().GetById(commentReportDto.Id);
+            if (comment == null)
+            {
+                _logger.LogWarning("Comment not found");
+                return new NotFoundResult();
+            }
+
+          
+            comment.IsReported = true;
+            comment.ReportCount++;
+
+            _unitOfWork.Repository<Comment>().Update(comment);
+
+            await _unitOfWork.CompleteAsync();
+
+            return new OkResult();
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error in ReportComment");
+            return new StatusCodeResult(500);
+        }
+    }
+
+
+
 }

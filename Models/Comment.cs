@@ -19,5 +19,7 @@ namespace News_aggregation.Entities
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
 
+        public bool IsReported { get; set; } = false;
+        public int ReportCount { get; set; }
     }
 }

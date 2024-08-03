@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using NewsAggregation.DTO.Favorite;
+using NewsAggregation.Models;
 using NewsAggregation.Services.Interfaces;
 using Newtonsoft.Json;
 
@@ -20,7 +21,7 @@ public class CachedBookmarkService : IBookmarkService
 
     public async Task<IActionResult> GetAllBookmarks(string? range = null)
     {
-        string cacheKey = $"range-{range}";
+        string cacheKey = $"bookmarks-{range}";
         var cachedResult = await _redisCache.GetStringAsync(cacheKey);
 
         if (!string.IsNullOrEmpty(cachedResult))
@@ -40,9 +41,9 @@ public class CachedBookmarkService : IBookmarkService
         return new OkObjectResult(result);
     }
 
-    public async Task<IActionResult> GetBookmarksByArticleId(Guid articleId)
+    public async Task<IActionResult> GetBookmarksByArticleId(Guid articleId, string? range = null)
     {
-        string cacheKey = $"bookmarks-{articleId}";
+        string cacheKey = $"bookmarks-{articleId}-range{range}";
         var cachedResult = _redisCache.GetString(cacheKey);
 
         if (!string.IsNullOrEmpty(cachedResult))
@@ -98,5 +99,10 @@ public class CachedBookmarkService : IBookmarkService
         }
 
         return new OkObjectResult(result);
+    }
+
+    public async Task<User?> FindUserByRefreshToken(string refreshToken, string userAgent)
+    {
+        return await _decorated.FindUserByRefreshToken(refreshToken, userAgent);
     }
 }

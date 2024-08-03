@@ -1,6 +1,6 @@
 ﻿using System.Threading.Channels;
 
-namespace NewsAggregation.Services.ServiceJobs.Email
+namespace NewsAggregation.Services.ServiceJobs.Email.Deprecated
 {
     public sealed class BackgroundTaskQueue : IBackgroundTaskQueue
     {

@@ -56,4 +56,11 @@ public class CommentController : ControllerBase
         await _commentService.DeleteComment(id);
         return Ok();
     }
+
+    [HttpPost("ReportComment")]
+    public async Task<IActionResult> ReportComment(CommentReportDto commentReport)
+    {
+        await _commentService.ReportComment(commentReport);
+        return Ok();
+    }
 }

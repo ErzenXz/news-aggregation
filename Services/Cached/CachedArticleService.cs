@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
+using News_aggregation.Entities;
 using NewsAggregation.DTO.Article;
 using NewsAggregation.Helpers;
 using NewsAggregation.Services.Interfaces;
@@ -20,8 +21,6 @@ namespace NewsAggregation.Services.Cached
             _decorated = articleService;
             _redisCache = redisCache;
         }
-
-        
 
         public Task<IActionResult> CreateArticle(ArticleCreateDto article)
         {
@@ -106,11 +105,6 @@ namespace NewsAggregation.Services.Cached
             return new OkObjectResult(result);
         }
 
-        public Task<PagedInfo<ArticleDto>> PagedArticlesView(int page, int pageSize, string searchByTitle)
-        {
-            return _decorated.PagedArticlesView(page, pageSize, searchByTitle);
-        }
-
         public Task<IActionResult> UpdateArticle(Guid id, ArticleUpdateDto updateArticle)
         {
             return _decorated.UpdateArticle(id, updateArticle);
@@ -141,5 +135,10 @@ namespace NewsAggregation.Services.Cached
             return _decorated.AddView(articleId);
         }
 
+
+        public Task<IEnumerable<Article>> SearchArticlesAsync(string query, string? range = null)
+        {
+            return _decorated.SearchArticlesAsync(query, range);
+        }
     }
 }

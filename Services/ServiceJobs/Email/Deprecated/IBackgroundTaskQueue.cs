@@ -1,4 +1,4 @@
-﻿namespace NewsAggregation.Services.ServiceJobs.Email
+﻿namespace NewsAggregation.Services.ServiceJobs.Email.Deprecated
 {
     public interface IBackgroundTaskQueue
     {

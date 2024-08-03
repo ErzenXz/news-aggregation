@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NewsAggregation.Data;
+using NewsAggregation.Data.UnitOfWork;
 using NewsAggregation.DTO.Subscriptions;
 using NewsAggregation.Models;
 using NewsAggregation.Services.Interfaces;
@@ -9,26 +10,28 @@ namespace NewsAggregation.Services
 {
     public class SubscriptionsService : ISubscriptionsService
     {
-        private readonly DBContext _dBContext;
         private readonly ILogger<AuthService> _logger;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public SubscriptionsService(DBContext dBContext, ILogger<AuthService> logger)
+        public SubscriptionsService(ILogger<AuthService> logger, IUnitOfWork unitOfWork)
         {
-            _dBContext = dBContext;
             _logger = logger;
+            _unitOfWork = unitOfWork;
         }
 
         public async Task<IActionResult> GetAllSubscriptions(string? range = null)
         {
             var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
+            var page = queryParams.Page;
+            var pageSize = queryParams.PerPage;
 
             try
             {
                 var now = DateTime.UtcNow;
 
-                var subscriptions = await _dBContext.Subscriptions
-                    .Skip((queryParams.Page - 1) * queryParams.PerPage)
-                    .Take(queryParams.PerPage)
+                var subscriptions = await _unitOfWork.Repository<Subscriptions>().GetAll()
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
                     .ToListAsync();
 
                 return new OkObjectResult(subscriptions);
@@ -43,15 +46,17 @@ namespace NewsAggregation.Services
         public async Task<IActionResult> GetAllActiveSubscriptions(string? range = null)
         {
             var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
+            var page = queryParams.Page;
+            var pageSize = queryParams.PerPage;
 
             try
             {
                 var now = DateTime.UtcNow;
 
-                var subscriptions = await _dBContext.Subscriptions
+                var subscriptions = await _unitOfWork.Repository<Subscriptions>().GetAll()
                     .Where(s => s.StartDate <= now && s.EndDate >= now)
-                    .Skip((queryParams.Page - 1) * queryParams.PerPage)
-                    .Take(queryParams.PerPage)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
                     .ToListAsync();
 
                 return new OkObjectResult(subscriptions);
@@ -67,8 +72,7 @@ namespace NewsAggregation.Services
         {
             try
             {
-                var subscription = await _dBContext.Subscriptions
-                    .FirstOrDefaultAsync(s => s.Id == id);
+                var subscription = await _unitOfWork.Repository<Subscriptions>().GetById(id);
 
                 if (subscription == null)
                 {
@@ -98,8 +102,8 @@ namespace NewsAggregation.Services
                     Currency = subscriptionRequest.Currency
                 };
 
-                await _dBContext.Subscriptions.AddAsync(subscription);
-                await _dBContext.SaveChangesAsync();
+                _unitOfWork.Repository<Subscriptions>().Create(subscription);
+                await _unitOfWork.CompleteAsync();
 
                 return new OkObjectResult(subscription);
             }
@@ -114,8 +118,7 @@ namespace NewsAggregation.Services
         {
             try
             {
-                var subscription = await _dBContext.Subscriptions
-                    .FirstOrDefaultAsync(s => s.Id == id);
+                var subscription = await _unitOfWork.Repository<Subscriptions>().GetById(id);
 
                 if (subscription == null)
                 {
@@ -129,8 +132,8 @@ namespace NewsAggregation.Services
                 subscription.Amount = subscriptionRequest.Amount;
                 subscription.Currency = subscriptionRequest.Currency;
 
-                _dBContext.Subscriptions.Update(subscription);
-                await _dBContext.SaveChangesAsync();
+                _unitOfWork.Repository<Subscriptions>().Update(subscription);
+                await _unitOfWork.CompleteAsync();
 
                 return new OkObjectResult(subscription);
             }
@@ -145,16 +148,15 @@ namespace NewsAggregation.Services
         {
             try
             {
-                var subscription = await _dBContext.Subscriptions
-                    .FirstOrDefaultAsync(s => s.Id == id);
+                var subscription = await _unitOfWork.Repository<Subscriptions>().GetById(id);
 
                 if (subscription == null)
                 {
                     return new NotFoundResult();
                 }
 
-                _dBContext.Subscriptions.Remove(subscription);
-                await _dBContext.SaveChangesAsync();
+                _unitOfWork.Repository<Subscriptions>().Delete(subscription);
+                await _unitOfWork.CompleteAsync();
 
                 return new OkResult();
             }

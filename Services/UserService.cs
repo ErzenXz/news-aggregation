@@ -107,7 +107,7 @@ namespace NewsAggregation.Services
             var page = queryParams.Page;
             var pageSize = queryParams.PerPage;
 
-            var savedArticles = await _dBContext.Bookmarks.Where(s => s.UserId == user.Id).Skip(page * pageSize).Take(pageSize).ToListAsync();
+            var savedArticles = await _dBContext.Bookmarks.Where(s => s.UserId == user.Id).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
             var articles = new List<Article>();
 

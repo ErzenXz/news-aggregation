@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NewsAggregation.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NewsAggregation.Migrations
 {
     [DbContext(typeof(DBContext))]
-    partial class DBContextModelSnapshot : ModelSnapshot
+    [Migration("20240801183253_Updated User Model to allow UserPreferences")]
+    partial class UpdatedUserModeltoallowUserPreferences
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -738,12 +741,6 @@ namespace NewsAggregation.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<bool>("IsReported")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("ReportCount")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -905,7 +902,7 @@ namespace NewsAggregation.Migrations
                         .IsRequired();
 
                     b.HasOne("NewsAggregation.Models.User", "User")
-                        .WithMany("Bookmarks")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -936,8 +933,6 @@ namespace NewsAggregation.Migrations
 
             modelBuilder.Entity("NewsAggregation.Models.User", b =>
                 {
-                    b.Navigation("Bookmarks");
-
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("Subscriptions");

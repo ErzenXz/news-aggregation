@@ -14,6 +14,10 @@ using Microsoft.EntityFrameworkCore;
 using OtpNet;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using NewsAggregation.Services.ServiceJobs.Email;
+using NewsAggregation.Helpers;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Routing;
 
 namespace NewsAggregation.Services
 {
@@ -24,14 +28,15 @@ namespace NewsAggregation.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthService> _logger;
-        private readonly SecureMail _secureMail;
+        private readonly EmailQueueService _emailQueueService;
 
-        public AuthService(DBContext dbContext, IHttpContextAccessor httpContextAccessor, IConfiguration configuration,SecureMail secureMail)
+        public AuthService(DBContext dbContext, IHttpContextAccessor httpContextAccessor, IConfiguration configuration, EmailQueueService emailQueueService, ILogger<AuthService> logger)
         {
             _dBContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
             _configuration = configuration;
-            _secureMail = secureMail;
+            _emailQueueService = emailQueueService;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Register(UserRegisterRequest userRequest)
@@ -339,16 +344,18 @@ namespace NewsAggregation.Services
 
                 if (oldConIP != GetUserIp())
                 {
-                    await _secureMail.SendEmail("noreply@erzen.tk", user.Email, "New Login from New IP on Personal Podcast", @"<p style=""font-size: 16px; color: #FF0000; font-weight: bold;"">⚠️ WARNING: SECURITY ALERT!</p>
-<p style=""font-size: 14px;"">Dear User,</p>
-<p style=""font-size: 14px;"">We regret to inform you that your account has been accessed from a <span style=""color: #FF0000;"">new, unauthorized IP address</span>. This may indicate a <span style=""color: #FF0000;"">security breach</span>.</p>
-<p style=""font-size: 14px;"">If this login was not authorized by you, we urge you to <span style=""color: #FF0000;"">immediately change your password</span> by visiting <a href=""https://personalpodcast.erzen.tk/account"">this link</a>.</p>
-<p style=""font-size: 14px;"">For your safety, do not ignore this message. If you believe your account has been compromised, <span style=""color: #FF0000;"">contact our support team</span> immediately.</p>
-<p style=""font-size: 14px;"">Thank you for your attention to this urgent matter.</p>
-<p style=""font-size: 14px;"">Sincerely,</p>
-<p style=""font-size: 14px;"">PersonalPodcasts</p>
-");
-                }
+
+                        EmailMessage emailMessage = new()
+                        {
+                            From = "noreply.sapientia.life",
+                            To = user.Email,
+                            Subject = "New Login from New IP on Sapientia Life",
+                            Body = EmailTemplates.IP_LOGGED_FROM_NEW_LOCATION
+                        };
+
+                        _emailQueueService.QueueEmail(emailMessage);
+
+                    }
                     return new OkObjectResult(new { Message = "User logged in successfully!", Code = 38, AccessToken = accessToken, newRefreshToken });
                 }
             }
@@ -431,8 +438,15 @@ namespace NewsAggregation.Services
                 _dBContext.Users.Update(user2);
                 await _dBContext.SaveChangesAsync();
 
-                await _secureMail.SendEmail("njnana2017@gmail.com", email, "New Password", "<h1>Hello!</h1><br>You have requested to reset your password in PersonalPodcast.<br>Here is your new password: <strong>" + newPassword + "</strong><br>Thanks!");
+                EmailMessage emailMessage = new()
+                {
+                    From = "noreply@sapientia.life",
+                    To = email,
+                    Subject = "New Password",
+                    Body = $"<h1>Hello!</h1><br>You have requested to reset your password in Sapientia.<br>Here is your new password: <strong>" + newPassword + "</strong><br>Thanks!"
+                };
 
+                _emailQueueService.QueueEmail(emailMessage);
 
                 return new OkObjectResult(new { Message = $"Here is your new generated password: {newPassword}, It was also send via email.", Code = 69 });
 
@@ -476,12 +490,19 @@ namespace NewsAggregation.Services
 
                 // Send email with new password
 
-                await _secureMail.SendEmail("njnana2017@gmail.com", user.Email, "Request to Reset Password", $"<h3>Hello {user.FullName}!</h3><br>You have requested to reset your password in PersonalPodcast.<br>Here is your one time reset code: <strong>" + randomCode + "</strong><br>" +
+                EmailMessage emailMessage = new()
+                {
+                    From = "noreply@sapientia.life",
+                    To = email,
+                    Subject = "Request to Reset Password",
+                    Body = $"<h3>Hello {user.FullName}!</h3><br>You have requested to reset your password in PersonalPodcast.<br>Here is your one time reset code: <strong>" + randomCode + "</strong><br>" +
                     "<p>You can use this link to directly change your password</p> " +
-                    $"<a href='https://api.personalpodcasts.erzen.tk/forgot-password?emailRq={user.Email}&code={randomCode}&verifyRequest=777'>Reset password</a>" +
+                    $"<a href='https://api.sapientia.life/auth/forgot-password?email={user.Email}&code={randomCode}'>Reset password</a>" +
                     "Your link will expire in 15 minutes. If you did not request this, please ignore this email.<br>" +
-                    "Thanks!");
+                    "Thanks!"
+                };
 
+                _emailQueueService.QueueEmail(emailMessage);
 
                 return new OkObjectResult(new { Message = "A code was send to your email. ", Code = 68 });
             }
@@ -579,11 +600,19 @@ namespace NewsAggregation.Services
 
             // Send email with new password
 
-            await _secureMail.SendEmail("njnana2017@gmail.com",user.Email, "Verify Email", $"<h3>Hello {user.FullName}!</h3><br>You have requested to verify your email in PersonalPodcast.<br>Here is your one time verification code: <strong>" + randomCode + "</strong><br>" +
+            EmailMessage emailMessage = new()
+            {
+                From = "noreply@sapientia.life",
+                To = user.Email,
+                Subject = "Verify Email",
+                Body = $"<h3>Hello {user.FullName}!</h3><br>You have requested to verify your email in Sapientia.<br>Here is your one time verification code: <strong>" + randomCode + "</strong><br>" +
                                "<p>You can use this link to directly verify your email</p> " +
-                                              $"<a href='https://test.erzen.tk/verify-email?code={randomCode}'>Verify Email</a>" +
+                                              $"<a href='https://api.sapientia.life/auth/verify-email?code={randomCode}'>Verify Email</a>" +
                                                              "Your link will expire in 15 minutes. If you did not request this, please ignore this email.<br>" +
-                                                                            "Thanks!");
+                                                                            "Thanks!"
+            };
+
+            _emailQueueService.QueueEmail(emailMessage);
 
             return new OkObjectResult(new { Message = "Email verification code sent successfully!", Code = 1000 });
         }
@@ -1120,7 +1149,9 @@ namespace NewsAggregation.Services
                 httpContext.Request.Headers["X-Forwarded-Proto"] = "https";
             }
 
-            var properties = new AuthenticationProperties { RedirectUri = "/external-login-callback" };
+            var redirectUrl = $"https://api.sapientia.life/auth/external-login-callback";
+
+            var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
             return new ChallengeResult(provider, properties);
         }
 
@@ -1138,6 +1169,8 @@ namespace NewsAggregation.Services
             var claims = result.Principal?.Identities.FirstOrDefault()?.Claims;
             var externalUserId = claims?.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
             var email = claims?.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
+            //var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
+            //var surname = result.Principal.FindFirst(ClaimTypes.Surname)?.Value;
 
             // Get provider from the external login
             var provider = claims?.FirstOrDefault(x => x.Type == "Provider")?.Value;
@@ -1181,8 +1214,8 @@ namespace NewsAggregation.Services
                 // Set cookies
                 SetCookies(refreshToken);
 
-                // Return the access token
-                return new OkObjectResult(new { Message = "User logged in successfully!", Code = 38, AccessToken = newAccessToken, newRefreshToken = refreshToken });
+                var redirectUrl = $"https://localhost:5173/auth-callback?accessToken={newAccessToken}&refreshToken={refreshToken}";
+                return new RedirectResult(redirectUrl);
             } else
             {
                 // User does not exist, add the user to the database
@@ -1243,7 +1276,8 @@ namespace NewsAggregation.Services
                 SetCookies(refreshToken);
 
                 // Return the access token
-                return new OkObjectResult(new { Message = "User logged in successfully!", Code = 38, AccessToken = newAccessToken, newRefreshToken = refreshToken });
+                var redirectUrl = $"https://localhost:5173/auth-callback?accessToken={newAccessToken}&refreshToken={refreshToken}";
+                return new RedirectResult(redirectUrl);
             }
 
 

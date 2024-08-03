@@ -29,13 +29,13 @@ namespace NewsAggregation.Services.ServiceJobs
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
         private readonly AsyncRetryPolicy _retryPolicy;
-        //private readonly IElasticClient _elasticClient;
+        private readonly IElasticClient _elasticClient;
 
-        public ScapeNewsSourcesService(ILogger<ScapeNewsSourcesService> logger, IServiceScopeFactory serviceScopeFactory /*IElasticClient elasticClient*/)
+        public ScapeNewsSourcesService(ILogger<ScapeNewsSourcesService> logger, IServiceScopeFactory serviceScopeFactory ,IElasticClient elasticClient)
         {
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
-            //_elasticClient = elasticClient;
+            _elasticClient = elasticClient;
 
             // Configure Polly retry policy
             _retryPolicy = Policy
@@ -279,7 +279,7 @@ namespace NewsAggregation.Services.ServiceJobs
                         // Batch index articles in Elasticsearch with unique IDs
                         if (newArticles.Any())
                         {
-                            /*
+
                             var bulkIndexResponse = await _elasticClient.BulkAsync(b => b
                                 .Index("articles")
                                 .IndexMany(newArticles, (descriptor, article) => descriptor.Id(article.Id))
@@ -298,7 +298,6 @@ namespace NewsAggregation.Services.ServiceJobs
                                 _logger.LogInformation($"{newArticles.Count} articles indexed in Elasticsearch.");
                             }
 
-                            */
 
                             await dbContext.Articles.AddRangeAsync(newArticles);
                             await dbContext.SaveChangesAsync();

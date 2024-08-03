@@ -109,18 +109,28 @@ namespace NewsAggregation.Services
 
             var savedArticles = await _dBContext.Bookmarks.Where(s => s.UserId == user.Id).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
-            var articles = new List<Article>();
+            var articles = new List<ArticleDto>();
 
             foreach (var savedArticle in savedArticles)
             {
                 var article = _dBContext.Articles.FirstOrDefault(a => a.Id == savedArticle.ArticleId);
                 if (article != null)
                 {
-                    articles.Add(article);
+                    var articleDTO = new ArticleDto
+                    {
+                        Title = article.Title,
+                        Content = article.Content,
+                        ImageUrl = article.ImageUrl,
+                        PublishedAt = article.CreatedAt,
+                        likes = article.Likes,
+                        Tags = article.Tags,
+                    };
+
+                    articles.Add(articleDTO);
                 }
             }
 
-            return new OkObjectResult(savedArticles);
+            return new OkObjectResult(articles);
         }
 
         public async Task<IActionResult> GetViewHistory(string? range = null)

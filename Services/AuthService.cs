@@ -30,13 +30,13 @@ namespace NewsAggregation.Services
         private readonly IUrlHelper _urlHelper;
 
 
-        public AuthService(DBContext dbContext, IHttpContextAccessor httpContextAccessor, IConfiguration configuration, EmailQueueService emailQueueService, IUrlHelperFactory urlHelperFactory, ActionContext actionContext)
+        public AuthService(DBContext dbContext, IHttpContextAccessor httpContextAccessor, IConfiguration configuration, EmailQueueService emailQueueService, IUrlHelperFactory urlHelperFactory, IActionContextAccessor actionContextAccessor)
         {
             _dBContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
             _configuration = configuration;
             _emailQueueService = emailQueueService;
-            _urlHelper = urlHelperFactory.GetUrlHelper(actionContext);
+            _urlHelper = urlHelperFactory.GetUrlHelper(actionContextAccessor.ActionContext);
         }
 
         public async Task<IActionResult> Register(UserRegisterRequest userRequest)

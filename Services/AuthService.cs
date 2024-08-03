@@ -27,14 +27,16 @@ namespace NewsAggregation.Services
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthService> _logger;
         private readonly EmailQueueService _emailQueueService;
+        private readonly IUrlHelper _urlHelper;
 
 
-        public AuthService(DBContext dbContext, IHttpContextAccessor httpContextAccessor, IConfiguration configuration, EmailQueueService emailQueueService)
+        public AuthService(DBContext dbContext, IHttpContextAccessor httpContextAccessor, IConfiguration configuration, EmailQueueService emailQueueService, IUrlHelperFactory urlHelperFactory, ActionContext actionContext)
         {
             _dBContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
             _configuration = configuration;
             _emailQueueService = emailQueueService;
+            _urlHelper = urlHelperFactory.GetUrlHelper(actionContext);
         }
 
         public async Task<IActionResult> Register(UserRegisterRequest userRequest)
@@ -1147,7 +1149,7 @@ namespace NewsAggregation.Services
                 httpContext.Request.Headers["X-Forwarded-Proto"] = "https";
             }
 
-            var properties = new AuthenticationProperties { RedirectUri = Url.Action("LoginProviderCallback") };
+            var properties = new AuthenticationProperties { RedirectUri = _urlHelper.Action("LoginProviderCallback") };
             return new ChallengeResult(provider, properties);
         }
 

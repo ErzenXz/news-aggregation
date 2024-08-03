@@ -1144,26 +1144,35 @@ namespace NewsAggregation.Services
                 return new BadRequestObjectResult(new { Message = "Invalid provider.", Code = 1000 });
             }
 
-            if (!httpContext.Request.Headers.ContainsKey("X-Forwarded-Proto"))
-            {
-                httpContext.Request.Headers["X-Forwarded-Proto"] = "https";
-            }
+            //if (!httpContext.Request.Headers.ContainsKey("X-Forwarded-Proto"))
+            //{
+            //    httpContext.Request.Headers["X-Forwarded-Proto"] = "https";
+            //}
 
-            var redirectUrl = $"https://api.sapientia.life/auth/external-login-callback";
+            var redirectUrl = $"http://api.sapientia.life/auth/external-login-callback";
 
             var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
+
             return new ChallengeResult(provider, properties);
         }
 
-        public async Task<IActionResult> LoginProviderCallback(HttpContext httpContext)
+        public async Task<IActionResult> LoginProviderCallback()
         {
-            if (!httpContext.Request.Headers.ContainsKey("X-Forwarded-Proto"))
-            {
-                httpContext.Request.Headers["X-Forwarded-Proto"] = "https";
-            }
+
+            var httpContext = _httpContextAccessor.HttpContext;
+            //if (!httpContext.Request.Headers.ContainsKey("X-Forwarded-Proto"))
+           // {
+               // httpContext.Request.Headers["X-Forwarded-Proto"] = "https";
+           // }
 
             var result = await httpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            if (!result.Succeeded) return new BadRequestObjectResult(new { Message = "Error processing external login." });
+
+
+            return new OkObjectResult(result);
+
+            /*
+            if (!result.Succeeded) return new BadRequestObjectResult(new { Message = "Error processing external login.", Result = result });
+
 
             // Retrieve user info from the external login
             var claims = result.Principal?.Identities.FirstOrDefault()?.Claims;
@@ -1280,6 +1289,7 @@ namespace NewsAggregation.Services
                 return new RedirectResult(redirectUrl);
             }
 
+            */
 
         }
 

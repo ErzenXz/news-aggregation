@@ -41,7 +41,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowedOrigins", builder =>
     {
-        builder.WithOrigins("http://localhost:5500", "https://localhost:5500", "http://localhost:5173", "https://sapientia.life", "https://grafana.sapientia.life/", "https://news.erzen.tk", "https://dev.sapientia.life", "https://*.sapientia.life", "https://*.erzen.tk")
+        builder.WithOrigins("http://localhost:5500", "https://localhost:5500", "http://localhost:5173", "https://sapientia.life", "https://grafana.sapientia.life/", "https://news.erzen.tk", "https://dev.sapientia.life", "https://c.sapientia.life")
             .AllowAnyMethod()
             .AllowAnyHeader()
             .AllowCredentials()

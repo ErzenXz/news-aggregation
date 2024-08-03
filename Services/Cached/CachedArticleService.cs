@@ -22,8 +22,6 @@ namespace NewsAggregation.Services.Cached
             _redisCache = redisCache;
         }
 
-        
-
         public Task<IActionResult> CreateArticle(ArticleCreateDto article)
         {
             return _decorated.CreateArticle(article);

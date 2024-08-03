@@ -62,7 +62,6 @@
 
         private async Task SendEmail(EmailMessage emailMessage)
         {
-            // Your email sending logic
             var client = new SmtpClient(_smtpSettings.SmtpServer)
             {
                 Port = _smtpSettings.SmtpPort,

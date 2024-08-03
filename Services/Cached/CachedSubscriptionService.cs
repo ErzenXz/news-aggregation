@@ -124,11 +124,5 @@ namespace NewsAggregation.Services.Cached
 
             return new OkObjectResult(result);
         }
-
-        public async Task<IActionResult> ExpireSubscription(Guid id)
-        {
-            var result = await _decorated.ExpireSubscription(id);
-            return new ObjectResult(result);
-        }
     }
 }

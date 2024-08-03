@@ -12,7 +12,6 @@ namespace NewsAggregation.Services.Interfaces
         public Task<IActionResult> CreateSubscription(SubscriptionCreateDto subscriptionRequest);
         public Task<IActionResult> UpdateSubscription(Guid id, SubscriptionCreateDto subscriptionRequest);
         public Task<IActionResult> DeleteSubscription(Guid id);
-        public Task<IActionResult> ExpireSubscription(Guid id);
     }
 
 }

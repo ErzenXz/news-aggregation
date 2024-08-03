@@ -11,14 +11,6 @@
         public DateTime EndDate { get; set; }
         public decimal Amount { get; set; }
         public string Currency { get; set; }
-        
-        public string StripeSubscriptionId { get; set; }
-        
-        public string StripeCustomerId { get; set; }
-        public string StripePriceId { get; set; }
-        public bool IsPaid { get; set; }
-        public bool IsActive { get; set; }
-        public DateTime LastPaymentDate { get; set; }
 
         ICollection<Payment> Payments { get; set; }
 

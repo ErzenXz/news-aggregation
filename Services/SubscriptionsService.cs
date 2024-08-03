@@ -5,7 +5,6 @@ using NewsAggregation.Data.UnitOfWork;
 using NewsAggregation.DTO.Subscriptions;
 using NewsAggregation.Models;
 using NewsAggregation.Services.Interfaces;
-using Stripe;
 
 namespace NewsAggregation.Services
 {
@@ -93,20 +92,7 @@ namespace NewsAggregation.Services
         {
             try
             {
-                var options = new SubscriptionCreateOptions
-                {
-                    Customer = subscriptionRequest.StripeCustomerId,
-                    Items = new List<SubscriptionItemOptions>
-                    {
-                        new SubscriptionItemOptions
-                        {
-                            Price = subscriptionRequest.StripePriceId,
-                        },
-                    },
-                };
-                var service = new SubscriptionService();
-                Subscription subscription = await service.CreateAsync(options);
-                var newsubscription = new Subscriptions
+                var subscription = new Subscriptions
                 {
                     UserId = subscriptionRequest.UserId,
                     PlanId = subscriptionRequest.PlanId,
@@ -116,7 +102,7 @@ namespace NewsAggregation.Services
                     Currency = subscriptionRequest.Currency
                 };
 
-                _unitOfWork.Repository<Subscriptions>().Create(newsubscription);
+                _unitOfWork.Repository<Subscriptions>().Create(subscription);
                 await _unitOfWork.CompleteAsync();
 
                 return new OkObjectResult(subscription);
@@ -180,30 +166,5 @@ namespace NewsAggregation.Services
                 return new StatusCodeResult(500);
             }
         }
-        
-        public async Task<IActionResult> ExpireSubscription(Guid id)
-        {
-            try
-            {
-                var subscription = await _unitOfWork.Repository<Subscriptions>().GetById(id);
-
-                if (subscription == null)
-                {
-                    return new NotFoundResult();
-                }
-
-                subscription.EndDate = DateTime.UtcNow.AddYears(1);
-                _unitOfWork.Repository<Subscriptions>().Update(subscription);
-                await _unitOfWork.CompleteAsync();
-
-                return new OkObjectResult(subscription);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in ExpireSubscription");
-                return new StatusCodeResult(500);
-            }
-        }
-
     }
 }

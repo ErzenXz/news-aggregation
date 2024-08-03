@@ -250,8 +250,8 @@ builder.Services.AddHealthChecksUI(setup =>
 
 
 // Add ElasticSearch
-builder.Services.AddSingleton<ElasticsearchClientFactory>();
-builder.Services.AddSingleton<IElasticClient>(sp => sp.GetRequiredService<ElasticsearchClientFactory>().GetClient());
+//builder.Services.AddSingleton<ElasticsearchClientFactory>();
+//builder.Services.AddSingleton<IElasticClient>(sp => sp.GetRequiredService<ElasticsearchClientFactory>().GetClient());
 
 builder.Services.AddLogging(config =>
 {

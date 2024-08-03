@@ -74,9 +74,9 @@ namespace NewsAggregation.Services.Cached
             return new OkObjectResult(result);
         }
 
-        public async Task<IActionResult> GetCommentsByArticleId(Guid articleId)
+        public async Task<IActionResult> GetCommentsByArticleId(Guid articleId, string? range = null)
         {
-            string cacheKey = $"comments-{articleId}";
+            string cacheKey = $"comments-{articleId}-range{range}";
             var cachedResult = _cache.GetString(cacheKey);
 
             if (!string.IsNullOrEmpty(cachedResult))
@@ -104,5 +104,7 @@ namespace NewsAggregation.Services.Cached
         {
             return _decorated.ReportComment(commentReport);
         }
+
+
     }
 }

@@ -67,6 +67,13 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
+    builder.Services.AddScoped<IUrlHelper>(x =>
+    {
+        var actionContext = x.GetService<IActionContextAccessor>()
+                              .ActionContext;
+        return new UrlHelper(actionContext);
+    });
 
 builder.Services.AddAutoMapper(typeof(AutoMapperConfiguration));
 

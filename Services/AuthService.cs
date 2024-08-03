@@ -1147,7 +1147,7 @@ namespace NewsAggregation.Services
                 httpContext.Request.Headers["X-Forwarded-Proto"] = "https";
             }
 
-            var properties = new AuthenticationProperties { RedirectUri = "/external-login-callback" };
+            var properties = new AuthenticationProperties { RedirectUri = Url.Action("LoginProviderCallback") };
             return new ChallengeResult(provider, properties);
         }
 
@@ -1165,6 +1165,8 @@ namespace NewsAggregation.Services
             var claims = result.Principal?.Identities.FirstOrDefault()?.Claims;
             var externalUserId = claims?.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
             var email = claims?.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
+            //var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
+            //var surname = result.Principal.FindFirst(ClaimTypes.Surname)?.Value;
 
             // Get provider from the external login
             var provider = claims?.FirstOrDefault(x => x.Type == "Provider")?.Value;

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NewsAggregation.Data;
+using NewsAggregation.Data.UnitOfWork;
 using NewsAggregation.DTO.Payments;
 using NewsAggregation.Models;
 using NewsAggregation.Services.Interfaces;
@@ -10,24 +11,26 @@ namespace NewsAggregation.Services
 {
     public class PaymentService : IPaymentService
     {
-        private readonly DBContext _dBContext;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<AuthService> _logger;
 
-        public PaymentService(DBContext dBContext, ILogger<AuthService> logger)
+        public PaymentService(IUnitOfWork unitOfWork, ILogger<AuthService> logger)
         {
-            _dBContext = dBContext;
+            _unitOfWork = unitOfWork;
             _logger = logger;
         }
 
         public async Task<IActionResult> GetAllPayments(string? range = null)
         {
             var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
+            var page = queryParams.Page;
+            var pageSize = queryParams.PerPage;
 
             try
             {
-                var payments = await _dBContext.Payments
-                    .Skip((queryParams.Page - 1) * queryParams.PerPage)
-                    .Take(queryParams.PerPage)
+                var payments = await _unitOfWork.Repository<Payment>().GetAll()
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
                     .ToListAsync();
 
                 return new OkObjectResult(payments);
@@ -43,8 +46,7 @@ namespace NewsAggregation.Services
         {
             try
             {
-                var payment = await _dBContext.Payments
-                    .FirstOrDefaultAsync(a => a.Id == id);
+                var payment = await _unitOfWork.Repository<Payment>().GetById(id);
 
                 if (payment == null)
                 {
@@ -104,8 +106,8 @@ namespace NewsAggregation.Services
                     PaymentDate = paymentRequest.PaymentDate
                 };
 
-                await _dBContext.Payments.AddAsync(payment);
-                await _dBContext.SaveChangesAsync();
+                _unitOfWork.Repository<Payment>().Create(payment);
+                await _unitOfWork.CompleteAsync();
 
                 Console.WriteLine($"Payment URL: {session.Url}");
                 return new OkObjectResult(new { url = session.Url });
@@ -121,8 +123,7 @@ namespace NewsAggregation.Services
         {
             try
             {
-                var payment = await _dBContext.Payments
-                    .FirstOrDefaultAsync(a => a.Id == id);
+                var payment = await _unitOfWork.Repository<Payment>().GetById(id);
 
                 if (payment == null)
                 {
@@ -139,7 +140,7 @@ namespace NewsAggregation.Services
                 payment.PaymentDescription = paymentRequest.PaymentDescription;
                 payment.PaymentDate = paymentRequest.PaymentDate;
 
-                await _dBContext.SaveChangesAsync();
+                await _unitOfWork.CompleteAsync();
 
                 return new OkObjectResult(payment);
             }
@@ -154,16 +155,15 @@ namespace NewsAggregation.Services
         {
             try
             {
-                var payment = await _dBContext.Payments
-                    .FirstOrDefaultAsync(a => a.Id == id);
+                var payment = await _unitOfWork.Repository<Payment>().GetById(id);
 
                 if (payment == null)
                 {
                     return new NotFoundResult();
                 }
 
-                _dBContext.Payments.Remove(payment);
-                await _dBContext.SaveChangesAsync();
+                _unitOfWork.Repository<Payment>().Delete(payment);
+                await _unitOfWork.CompleteAsync();
 
                 return new OkObjectResult(payment);
             }

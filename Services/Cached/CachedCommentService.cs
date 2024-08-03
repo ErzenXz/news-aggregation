@@ -99,5 +99,10 @@ namespace NewsAggregation.Services.Cached
         {
             return _decorated.UpdateComment(id, comment);
         }
+
+        public Task<IActionResult> ReportComment(CommentReportDto commentReport)
+        {
+            return _decorated.ReportComment(commentReport);
+        }
     }
 }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using NewsAggregation.DTO.Favorite;
@@ -16,35 +17,35 @@ public class BookmarkController : ControllerBase
         _bookmarkService = bookmarkService;
     }
 
-    [HttpGet("GetAllBookmarks")]
+    [HttpGet("all"), Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<IActionResult> GetAllBookmarks(string? range = null)
     {
         var bookmarks = await _bookmarkService.GetAllBookmarks(range);
         return Ok(bookmarks);
     }
 
-    [HttpGet("GetBookmarksByArticleId/{id}")]
-    public async Task<IActionResult> GetBookmarksByArticleId(Guid id)
+    [HttpGet("article/{id}"), Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<IActionResult> GetBookmarksByArticleId(Guid id, string? range = null)
     {
-        var bookmarks = await _bookmarkService.GetBookmarksByArticleId(id);
+        var bookmarks = await _bookmarkService.GetBookmarksByArticleId(id,range);
         return Ok(bookmarks);
     }
 
-    [HttpGet("GetBookmarkById/{id}|")]
+    [HttpGet("{id}|"), Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<IActionResult> GetBookmarkById(Guid id)
     {
-        var bookmark = _bookmarkService.GetBookmarkById(id);
+        var bookmark = await _bookmarkService.GetBookmarkById(id);
         return Ok(bookmark);
     }
 
-    [HttpPost("CreateBookmark")]
+    [HttpPost("create"), Authorize(Roles = "User,Admin,SuperAdmin")]
     public async Task<IActionResult> CreateBookmark([FromBody]BookmarkCreateDto bookmark)
     {
         await _bookmarkService.CreateBookmark(bookmark);
         return Ok();
     }
 
-    [HttpDelete("DeleteBookmark/{id}")]
+    [HttpDelete("{id}"), Authorize(Roles = "User,Admin,SuperAdmin")]
     public async Task<IActionResult> DeleteBookmark(Guid id)
     {
         await _bookmarkService.DeleteBookmark(id);

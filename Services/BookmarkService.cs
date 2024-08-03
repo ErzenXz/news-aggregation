@@ -1,43 +1,63 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using News_aggregation.Entities;
+using NewsAggregation.Data;
 using NewsAggregation.Data.UnitOfWork;
+using NewsAggregation.DTO.Article;
 using NewsAggregation.DTO.Favorite;
 using NewsAggregation.Helpers;
+using NewsAggregation.Models;
 using NewsAggregation.Services.Interfaces;
 using QRCoder;
+using System;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace NewsAggregation.Services;
 
 public class BookmarkService : IBookmarkService
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IMapper _mapper;
-    private readonly ILogger<AuthService> _logger;
+    private readonly DBContext _dBContext;
+    private readonly ILogger<BookmarkService> _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public BookmarkService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<AuthService> logger)
+    public BookmarkService(DBContext dBContext, IHttpContextAccessor httpContextAccessor, ILogger<BookmarkService> logger)
     {
-        _unitOfWork = unitOfWork;
-        _mapper = mapper;
+        _dBContext = dBContext;
         _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
     }
-    
+
     public async Task<IActionResult> GetAllBookmarks(string? range = null)
     {
         var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
         var page = queryParams.Page;
         var pageSize = queryParams.PerPage;
-        
+
         try
         {
-            var bookmarks = await _unitOfWork.Repository<Bookmark>().GetAll()
-                .Include(x => x.Article)
-                .Include(x => x.User)
-                .Skip((page - 1) * pageSize).Take(pageSize)
-                .ToListAsync();
+            var articleList = new List<ArticleDto>();
 
-            return new ObjectResult(bookmarks);
+            var bookmarks = await _dBContext.Bookmarks.Take(pageSize).Skip((page - 1) * pageSize).ToListAsync();
+
+            foreach (var bookmark in bookmarks)
+            {
+                var article = await _dBContext.Articles.FirstOrDefaultAsync(x => x.Id == bookmark.ArticleId);
+                var articleDTO = new ArticleDto
+                {
+                    Title = article.Title,
+                    Content = article.Content,
+                    ImageUrl = article.ImageUrl,
+                    PublishedAt = article.CreatedAt,
+                    likes = article.Likes,
+                    Tags = article.Tags,
+                };
+
+                articleList.Add(articleDTO);
+            }
+
+            return new OkObjectResult(articleList);
         }
         catch (Exception e)
         {
@@ -46,14 +66,24 @@ public class BookmarkService : IBookmarkService
         }
     }
 
-    public async Task<IActionResult> GetBookmarksByArticleId(Guid articleId)
+    public async Task<IActionResult> GetBookmarksByArticleId(Guid articleId, string? range = null)
     {
         try
         {
-            var bookmark = await _unitOfWork.Repository<Bookmark>().GetByCondition(x => x.ArticleId == articleId)
-                .Include(x => x.Article)
-                .Include(x => x.User)
+            var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
+            var page = queryParams.Page;
+            var pageSize = queryParams.PerPage;
+
+            if (Guid.Empty == articleId)
+                return new BadRequestObjectResult(new { Message = "Invalid article id.", Code = 75 });
+
+            var bookmark = await _dBContext.Bookmarks.Where(x => x.ArticleId == articleId).Take(pageSize).Skip((page - 1) * pageSize)
                 .ToListAsync();
+
+            if (bookmark.Count == 0)
+            {
+                return new NotFoundObjectResult(new { Message = "No bookmarks found for the given article.", Code = 79 });
+            }
 
             return new OkObjectResult(bookmark);
         }
@@ -67,12 +97,19 @@ public class BookmarkService : IBookmarkService
     {
         try
         {
-            var bookmark = await _unitOfWork.Repository<Bookmark>().GetByCondition(x => x.Id == id)
-                .Include(x => x.Article)
-                .Include(x => x.User)
-                .FirstOrDefaultAsync();
-            
-            return new OkObjectResult(bookmark);
+            if (id == Guid.Empty)
+            {
+                return new BadRequestObjectResult(new { Message = "Invalid bookmark id.", Code = 77 });
+            }
+            var bookmark = await _dBContext.Bookmarks.FirstOrDefaultAsync(x => x.Id == id);
+
+            if (bookmark == null)
+            {
+                return new NotFoundObjectResult(new { Message = "Bookmark not found.", Code = 78 });
+            }
+
+            var article = await _dBContext.Articles.FirstOrDefaultAsync(x => x.Id == bookmark.ArticleId);
+            return new OkObjectResult(article);
         }
         catch (Exception e)
         {
@@ -85,10 +122,31 @@ public class BookmarkService : IBookmarkService
     {
         try
         {
-            var bookmarkToCreate = _mapper.Map<Bookmark>(bookmark);
-            //bookmarkToCreate.Id = Guid.NewGuid();
-            _unitOfWork.Repository<Bookmark>().Create(bookmarkToCreate);
-            _unitOfWork.Complete();
+            var httpContex = _httpContextAccessor.HttpContext;
+
+            var refreshToken = httpContex.Request.Cookies["refreshToken"];
+            var userAgent = httpContex.Request.Headers["User-Agent"].ToString();
+
+            if (refreshToken == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "Unauthorized to perform this request.", Code = 76 });
+            }
+
+            var user = await FindUserByRefreshToken(refreshToken, userAgent);
+
+            if (user == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "Unauthorized to perform this request.", Code = 76 });
+            }
+
+            var bookmarkToAdd = new Bookmark
+            {
+                ArticleId = bookmark.ArticleId,
+                UserId = user.Id
+            };
+
+            await _dBContext.Bookmarks.AddAsync(bookmarkToAdd);
+            await _dBContext.SaveChangesAsync();
 
             return new OkResult();
         }
@@ -103,17 +161,59 @@ public class BookmarkService : IBookmarkService
     {
         try
         {
-            var bookmarkToDelete =
-                await _unitOfWork.Repository<Bookmark>().GetById(id);
 
-            if (bookmarkToDelete == null)
+            if (id == Guid.Empty)
             {
-                _logger.LogWarning("Bookmark not found");
-                return new NotFoundResult();
+                return new BadRequestObjectResult(new { Message = "Invalid bookmark id.", Code = 77 });
             }
-        
-            _unitOfWork.Repository<Bookmark>().Delete(bookmarkToDelete);
-            _unitOfWork.Complete();
+
+            var httpContex = _httpContextAccessor.HttpContext;
+
+            var refreshToken = httpContex.Request.Cookies["refreshToken"];
+            var userAgent = httpContex.Request.Headers["User-Agent"].ToString();
+
+            if (refreshToken == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "Unauthorized to perform this request.", Code = 76 });
+            }
+
+            var user = await FindUserByRefreshToken(refreshToken, userAgent);
+
+            if (user == null)
+            {
+                return new UnauthorizedObjectResult(new { Message = "Unauthorized to perform this request.", Code = 76 });
+            }
+
+            var bookmark = _dBContext.Bookmarks.FirstOrDefault(x => x.Id == id);
+
+            if (bookmark == null)
+            {
+                return new NotFoundObjectResult(new { Message = "Bookmark not found.", Code = 78 });
+            }
+
+            var jwt = httpContex.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            var token = new JwtSecurityToken(jwt);
+            var role = token.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
+
+            if (role.Equals("Admin") || role.Equals("SuperAdmin"))
+            {
+                _dBContext.Bookmarks.Remove(bookmark);
+                await _dBContext.SaveChangesAsync();
+
+                return new OkResult();
+            }
+            else
+            {
+                if (bookmark.UserId != user.Id)
+                {
+                    return new UnauthorizedObjectResult(new { Message = "Unauthorized to perform this request.", Code = 76 });
+                } else
+                {
+                    _dBContext.Bookmarks.Remove(bookmark);
+                    await _dBContext.SaveChangesAsync();
+                }
+
+            }
 
             return new OkResult();
         }
@@ -122,6 +222,36 @@ public class BookmarkService : IBookmarkService
             _logger.LogError(e, "Error in CreateBookmark");
             return new StatusCodeResult(500);
         }
-        
+
     }
+
+    public async Task<User?> FindUserByRefreshToken(string refreshToken, string userAgent)
+    {
+        var currentTime = DateTime.UtcNow;
+
+        var refreshTokenEntry = _dBContext.refreshTokens.FirstOrDefault(r => r.Token == refreshToken && r.Expires > currentTime && r.UserAgent == userAgent && r.Revoked == null);
+
+        if (refreshTokenEntry == null)
+        {
+            return null;
+        }
+
+        var userId = refreshTokenEntry.UserId;
+        var refreshTokenVersion = refreshTokenEntry.TokenVersion;
+
+        var user = await _dBContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+        {
+            return null;
+        }
+
+        if (user.TokenVersion != refreshTokenVersion)
+        {
+            return null;
+        }
+
+        return user;
+    }
+
 }

@@ -26,16 +26,16 @@ namespace NewsAggregation.Services
         private readonly ILogger<AuthService> _logger;
         private readonly DBContext _dBContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IElasticClient _elasticClient;
+        //private readonly IElasticClient _elasticClient;
 
-        public ArticleService(IMapper mapper, IUnitOfWork unitOfWork, ILogger<AuthService> logger, DBContext dbContext, IHttpContextAccessor httpContextAccessor, IElasticClient elasticClient)
+        public ArticleService(IMapper mapper, IUnitOfWork unitOfWork, ILogger<AuthService> logger, DBContext dbContext, IHttpContextAccessor httpContextAccessor /*IElasticClient elasticClient*/)
         {
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _logger = logger;
             _dBContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
-            _elasticClient = elasticClient;
+            //_elasticClient = elasticClient;
         }
 
 
@@ -72,7 +72,7 @@ namespace NewsAggregation.Services
                     await _unitOfWork.CompleteAsync();
 
                     // Remove article from elastic search
-                    await _elasticClient.DeleteAsync<Article>(id);
+                    //await _elasticClient.DeleteAsync<Article>(id);
 
                     return new OkResult();
                 }
@@ -167,7 +167,7 @@ namespace NewsAggregation.Services
                 var updatedArticleDto = _mapper.Map<ArticleUpdateDto>(article);
 
                 // Update article in elastic search
-                await _elasticClient.UpdateAsync<Article>(id, u => u.Doc(article));
+                //await _elasticClient.UpdateAsync<Article>(id, u => u.Doc(article));
 
                 return new OkObjectResult(updatedArticleDto);
             }
@@ -540,7 +540,12 @@ namespace NewsAggregation.Services
             }
         }
 
+        public Task<IEnumerable<Article>> SearchArticlesAsync(string query, string? range = null)
+        {
+            throw new NotImplementedException();
+        }
 
+        /*
         public async Task<IEnumerable<Article>> SearchArticlesAsync(string query, string? range = null)
         {
 
@@ -591,6 +596,8 @@ namespace NewsAggregation.Services
             }
             return Enumerable.Empty<Article>();
         }
+
+        */
 
     }
 

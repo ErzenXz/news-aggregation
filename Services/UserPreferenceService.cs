@@ -11,7 +11,9 @@ using NewsAggregation.Models;
 using NewsAggregation.Services.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Threading.Tasks;
+using static QRCoder.PayloadGenerator;
 
 namespace NewsAggregation.Services
 {
@@ -104,8 +106,27 @@ namespace NewsAggregation.Services
                     return new NotFoundResult();
                 }
 
-                _dBContext.UserPreferences.Remove(userPreferences);
-                await _dBContext.SaveChangesAsync();
+
+                var jwt = httpContex.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                var token = new JwtSecurityToken(jwt);
+                var role = token.Claims.FirstOrDefault(c => c.Type == "role")?.Value;
+
+                if (role.Equals("Admin") || role.Equals("SuperAdmin"))
+                {
+                    _dBContext.UserPreferences.Remove(userPreferences);
+                    await _dBContext.SaveChangesAsync();
+
+                    return new OkResult();
+                } else
+                {
+                    if (userPreferences.UserId != user.Id)
+                    {
+                        return new UnauthorizedObjectResult(new { Message = "Unauthorized to perform this request.", Code = 76 });
+                    }
+
+                    _dBContext.UserPreferences.Remove(userPreferences);
+                    await _dBContext.SaveChangesAsync();
+                }
 
                 return new OkObjectResult(new { Message = "User Preferences Deleted Successfully", Code = 200 });
             }

@@ -7,12 +7,12 @@ namespace News_aggregation.Entities
     {
         public Guid Id { get; set; }
 
-        public Guid UserId { get; set; }
         [ForeignKey("UserId")]
+        public Guid UserId { get; set; }
         public User User { get; set; }
 
-        public Guid ArticleId { get; set; }
         [ForeignKey("ArticleId")]
+        public Guid ArticleId { get; set; }
         public Article Article { get; set; }
     }
 }

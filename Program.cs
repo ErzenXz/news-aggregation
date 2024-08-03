@@ -30,6 +30,9 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Nest;
 using NewsAggregation.Services.ServiceJobs.Email.Deprecated;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -122,8 +125,10 @@ builder.Services.AddSignalR(hubOptions =>
 builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddSingleton<RssService>();
 
-builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
-builder.Services.AddScoped<IUrlHelperFactory, UrlHelperFactory>();
+//builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
+//builder.Services.AddSingleton<IUrlHelperFactory, UrlHelperFactory>();
+//builder.Services.AddSingleton<ICustomUrlHelperFactory, CustomUrlHelperFactory>();
+
 
 // Increse the max theards for the ThreadPool
 
@@ -162,6 +167,8 @@ builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+
 })
 .AddJwtBearer(options =>
 {
@@ -194,7 +201,8 @@ builder.Services.AddAuthentication(options =>
             }
         }
     };
-}).AddGoogle(options =>
+}).AddCookie(CookieAuthenticationDefaults.AuthenticationScheme)
+.AddGoogle(options =>
 {
     options.ClientId = "285450690747-af4hbh7ueknchu5lfjf2mu5hoate80d1.apps.googleusercontent.com";
     options.ClientSecret = "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";

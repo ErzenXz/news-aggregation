@@ -11,7 +11,7 @@ namespace NewsAggregation.Services
 
         public ElasticsearchClientFactory()
         {
-            var settings = new ConnectionSettings(new Uri("https://localhost:9200"))
+            var settings = new ConnectionSettings(new Uri("https://34.154.205.12:9200"))
             .DefaultIndex("articles")
                 .BasicAuthentication("news", "cyKKAqHFvCk3F8p")
 

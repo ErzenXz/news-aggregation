@@ -10,5 +10,12 @@ namespace NewsAggregation.DTO.Subscriptions
         public DateTime EndDate { get; set; }
         public decimal Amount { get; set; }
         public string Currency { get; set; }
+        public string StripeSubscriptionId { get; set; }
+        
+        public string StripeCustomerId { get; set; }
+        public string StripePriceId { get; set; }
+        
+        public bool IsPaid { get; set; }
+        
     }
 }

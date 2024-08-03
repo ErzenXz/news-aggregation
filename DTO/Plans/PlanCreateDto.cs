@@ -8,6 +8,8 @@
         public decimal Price { get; set; }
         public int Duration { get; set; }
         public string Currency { get; set; }
+        public string StripeProductId { get; set; }
+        public string StripePriceId { get; set; }
 
     }
 }

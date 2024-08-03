@@ -63,4 +63,11 @@ public class CommentController : ControllerBase
         await _commentService.ReportComment(commentReport);
         return Ok();
     }
+
+    [HttpGet("GetReportedComments")]
+    public async Task<IActionResult> GetAllReportedComments()
+    {
+        var reportedComments = await _commentService.GetAllReportedComments();
+        return Ok(reportedComments);
+    }
 }

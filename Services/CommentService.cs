@@ -284,6 +284,25 @@ public class CommentService : ICommentService
         }
     }
 
+    public async Task<IActionResult> GetAllReportedComments(string? range = null)
+    {
+        try
+        {
+            var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
+            var page = queryParams.Page;
+            var pageSize = queryParams.PerPage;
 
+            var reportedComments = await _unitOfWork.Repository<Comment>().GetAll().Where(x => x.IsReported == true)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
+            return new OkObjectResult(reportedComments);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error in GetReportedComments");
+            return new StatusCodeResult(500);
+        }
+    }
 }

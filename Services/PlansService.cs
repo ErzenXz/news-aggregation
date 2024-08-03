@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NewsAggregation.Data;
+using NewsAggregation.Data.UnitOfWork;
 using NewsAggregation.DTO.Plans;
 using NewsAggregation.Models;
 using NewsAggregation.Services.Interfaces;
@@ -9,24 +10,26 @@ namespace NewsAggregation.Services
 {
     public class PlansService : IPlansService
     {
-        private readonly DBContext _dBContext;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<AuthService> _logger;
 
-        public PlansService(DBContext dBContext, ILogger<AuthService> logger)
+        public PlansService(IUnitOfWork unitOfWork, ILogger<AuthService> logger)
         {
-            _dBContext = dBContext;
+            _unitOfWork = unitOfWork;
             _logger = logger;
         }
 
         public async Task<IActionResult> GetAllPlans(string? range = null)
         {
             var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
+            var page = queryParams.Page;
+            var pageSize = queryParams.PerPage;
 
             try
             {
-                var plans = await _dBContext.Plans
-                    .Skip((queryParams.Page - 1) * queryParams.PerPage)
-                    .Take(queryParams.PerPage)
+                var plans = await _unitOfWork.Repository<Plans>().GetAll()
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
                     .ToListAsync();
 
                 return new OkObjectResult(new {plans});
@@ -41,15 +44,17 @@ namespace NewsAggregation.Services
         public async Task<IActionResult> GetAllActivePlans(string? range = null)
         {
             var queryParams = ParameterParser.ParseRangeAndSort(range, "sort");
+            var page = queryParams.Page;
+            var pageSize = queryParams.PerPage;
 
             try
             {
                 var now = DateTime.UtcNow;
 
-                var plans = await _dBContext.Plans
+                var plans = await _unitOfWork.Repository<Plans>().GetAll()
                     .Where(a => a.IsActive)
-                    .Skip((queryParams.Page - 1) * queryParams.PerPage)
-                    .Take(queryParams.PerPage)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
                     .ToListAsync();
 
                 return new OkObjectResult(new { plans });
@@ -67,9 +72,7 @@ namespace NewsAggregation.Services
         {
             try
             {
-                var plan = await _dBContext.Plans
-                    .Where(a => a.Id == id)
-                    .FirstOrDefaultAsync();
+                var plan = await _unitOfWork.Repository<Plans>().GetById(id);
 
                 return new OkObjectResult(plan);
             }
@@ -98,9 +101,8 @@ namespace NewsAggregation.Services
                 pl.Description = plan.Description;
                 pl.CreatedAt = DateTime.UtcNow;
 
-
-                _dBContext.Plans.Add(pl);
-                await _dBContext.SaveChangesAsync();
+                _unitOfWork.Repository<Plans>().Create(pl);
+                await _unitOfWork.CompleteAsync();
 
                 return new OkObjectResult(pl);
             }
@@ -115,9 +117,7 @@ namespace NewsAggregation.Services
         {
             try
             {
-                var pl = await _dBContext.Plans
-                    .Where(a => a.Id == id)
-                    .FirstOrDefaultAsync();
+                var pl = await _unitOfWork.Repository<Plans>().GetById(id);
 
                 if (pl == null)
                 {
@@ -131,7 +131,7 @@ namespace NewsAggregation.Services
                 pl.Duration = plan.Duration;
                 pl.Currency = plan.Currency;
 
-                await _dBContext.SaveChangesAsync();
+                await _unitOfWork.CompleteAsync();
 
                 return new OkObjectResult(pl);
             }
@@ -146,17 +146,15 @@ namespace NewsAggregation.Services
         {
             try
             {
-                var plan = await _dBContext.Plans
-                    .Where(a => a.Id == id)
-                    .FirstOrDefaultAsync();
+                var plan = await _unitOfWork.Repository<Plans>().GetById(id);
 
                 if (plan == null)
                 {
                     return new NotFoundResult();
                 }
 
-                _dBContext.Plans.Remove(plan);
-                await _dBContext.SaveChangesAsync();
+                _unitOfWork.Repository<Plans>().Delete(plan);
+                await _unitOfWork.CompleteAsync();
 
                 return new OkObjectResult(plan);
             }

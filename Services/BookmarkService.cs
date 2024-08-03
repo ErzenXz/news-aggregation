@@ -86,7 +86,9 @@ public class BookmarkService : IBookmarkService
         try
         {
             var bookmarkToCreate = _mapper.Map<Bookmark>(bookmark);
-            //bookmarkToCreate.Id = Guid.NewGuid();
+            
+            bookmarkToCreate.Id = Guid.NewGuid();
+            
             _unitOfWork.Repository<Bookmark>().Create(bookmarkToCreate);
             _unitOfWork.Complete();
 

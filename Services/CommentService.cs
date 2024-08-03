@@ -128,10 +128,7 @@ public class CommentService : ICommentService
             {
                 commentToUpdate.Content = comment.Content;
                 
-                _unitOfWork.Repository<Comment>().Update(commentToUpdate);
                 await _unitOfWork.CompleteAsync();
-
-                var updatedComment = _mapper.Map<CommentDto>(commentToUpdate);
 
                 return new OkResult();
             }
@@ -172,4 +169,6 @@ public class CommentService : ICommentService
             return new StatusCodeResult(500);
         }
     }
+    
+    
 }

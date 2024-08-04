@@ -64,7 +64,7 @@ namespace NewsAggregation.Services.Cached
             return new OkObjectResult(result);
 
         }
-
+        /*
         public async Task<IActionResult> UpdatePayment(Guid id, PaymentCreateDto paymentRequest)
         {
             var result = await _decorated.UpdatePayment(id, paymentRequest);
@@ -76,6 +76,7 @@ namespace NewsAggregation.Services.Cached
 
             return new OkObjectResult(result);
         }
+        */
 
         public async Task<IActionResult> CreatePayment(PaymentCreateDto paymentRequest)
         {
@@ -83,6 +84,7 @@ namespace NewsAggregation.Services.Cached
             return new OkObjectResult(result);
         }
 
+        /*
         public async Task<IActionResult> DeletePayment(Guid id)
         {
             var result = await _decorated.DeletePayment(id);
@@ -94,5 +96,6 @@ namespace NewsAggregation.Services.Cached
 
             return new OkObjectResult(result);
         }
+        */
     }
 }

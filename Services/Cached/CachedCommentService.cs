@@ -128,5 +128,10 @@ namespace NewsAggregation.Services.Cached
             return new OkObjectResult(result);
         }
 
+        public Task<IActionResult> UpdateReportComment(Guid guid, sbyte status)
+        {
+            return _decorated.UpdateReportComment(guid, status);
+        }
+
     }
 }

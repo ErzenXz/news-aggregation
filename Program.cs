@@ -70,6 +70,7 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 
 
 builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddAutoMapper(typeof(AutoMapperConfiguration));
 
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -213,7 +214,7 @@ builder.Services.AddAuthentication(options =>
 }).AddDiscord(options =>
 {
     options.ClientId = "1267900731936084050";
-    options.ClientSecret = "3d65e39e7f2aebc18d82b1f11eb9106307f7e23d74007178943575d0b6ec4513";
+    options.ClientSecret = "Zf8UgmYHAb3d6ueXaoQ9Z75ae296yuom";
 });
 
 
@@ -242,7 +243,6 @@ builder.Services.AddDbContext<DBContext>(options =>
 });
 
 
-
 builder.Services.AddHealthChecks()
     .AddNpgSql(connectionString, name: "PostgreSQL",
         failureStatus: HealthStatus.Degraded,
@@ -260,6 +260,7 @@ builder.Services.AddHealthChecksUI(setup =>
 
 
 // Add ElasticSearch
+
 builder.Services.AddSingleton<ElasticsearchClientFactory>();
 builder.Services.AddSingleton<IElasticClient>(sp => sp.GetRequiredService<ElasticsearchClientFactory>().GetClient());
 
@@ -301,6 +302,7 @@ app.Use(async (context, next) =>
     context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
     context.Response.Headers.Add("X-Frame-Options", "DENY");
     context.Response.Headers.Add("X-XSS-Protection", "1; mode=block");
+    /*.Response.Headers.Add("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; media-src 'none'; frame-src 'none'; frame-ancestors 'none'; form-action 'self'; base-uri 'self'; block-all-mixed-content; upgrade-insecure-requests; require-sri-for script style; require-trusted-types-for 'script';");*/
     await next();
 });
 

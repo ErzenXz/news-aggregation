@@ -119,6 +119,8 @@ namespace NewsAggregation.Services
                 pl.IsActive = true;
                 pl.Description = plan.Description;
                 pl.CreatedAt = DateTime.UtcNow;
+                pl.StripeProductId = product.Id;
+                pl.StripePriceId = price.Id;
 
                 _unitOfWork.Repository<Plans>().Create(pl);
                 await _unitOfWork.CompleteAsync();

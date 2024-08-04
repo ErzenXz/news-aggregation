@@ -60,7 +60,7 @@ public class BackgroundNotificationService : BackgroundService
     {
         _logger.LogInformation("[x] Background Notification Service is starting.");
 
-        _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds(50));
+        _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromSeconds(30));
 
         await Task.Delay(Timeout.Infinite, stoppingToken);
     }

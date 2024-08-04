@@ -23,7 +23,9 @@ public class AutoMapperConfiguration : Profile
             
         CreateMap<Category, CategoryCreateDto>().ReverseMap();
 
-        CreateMap<Comment, CommentDto>().ReverseMap();
+        CreateMap<Comment, CommentDto>();
+        CreateMap<CommentDto, Comment>();
+
         CreateMap<Comment, CommentCreateDto>().ReverseMap();
         CreateMap<Comment, CommentReportDto>().ReverseMap();
 

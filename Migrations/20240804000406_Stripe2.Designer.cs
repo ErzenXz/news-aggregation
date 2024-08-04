@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NewsAggregation.Data;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NewsAggregation.Migrations
 {
     [DbContext(typeof(DBContext))]
-    partial class DBContextModelSnapshot : ModelSnapshot
+    [Migration("20240804000406_Stripe2")]
+    partial class Stripe2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -37,18 +40,12 @@ namespace NewsAggregation.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("text");
 
-                    b.Property<int>("GuaranteedViews")
-                        .HasColumnType("integer");
-
                     b.Property<string>("ImageUrl")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("RedirectUrl")
                         .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Tags")
                         .HasColumnType("text");
 
                     b.Property<string>("Title")
@@ -64,41 +61,6 @@ namespace NewsAggregation.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Ads");
-                });
-
-            modelBuilder.Entity("NewsAggregation.Models.CommentReports", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CommentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("IpAddress")
-                        .HasColumnType("text");
-
-                    b.Property<bool?>("IsSeen")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("ReportType")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Status")
-                        .HasColumnType("text");
-
-                    b.Property<string>("UserAgent")
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("CommentReports");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.Notification", b =>
@@ -483,17 +445,18 @@ namespace NewsAggregation.Migrations
 
             modelBuilder.Entity("NewsAggregation.Models.Subscriptions", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
 
-                    b.Property<long>("Amount")
-                        .HasColumnType("bigint");
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric");
 
                     b.Property<string>("Currency")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTime?>("EndDate")
+                    b.Property<DateTime>("EndDate")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsActive")
@@ -505,9 +468,8 @@ namespace NewsAggregation.Migrations
                     b.Property<DateTime>("LastPaymentDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("PlanId")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("timestamp with time zone");
@@ -524,16 +486,14 @@ namespace NewsAggregation.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid?>("UserId1")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId1");
+                    b.HasIndex("PlanId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Subscriptions");
                 });
@@ -596,10 +556,6 @@ namespace NewsAggregation.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Role")
-                        .HasColumnType("text");
-
-                    b.Property<string>("StripeCustomerId")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("TimeZone")
@@ -893,9 +849,21 @@ namespace NewsAggregation.Migrations
 
             modelBuilder.Entity("NewsAggregation.Models.Subscriptions", b =>
                 {
-                    b.HasOne("NewsAggregation.Models.User", null)
+                    b.HasOne("NewsAggregation.Models.Plans", "Plan")
+                        .WithMany()
+                        .HasForeignKey("PlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("NewsAggregation.Models.User", "User")
                         .WithMany("Subscriptions")
-                        .HasForeignKey("UserId1");
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Plan");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("NewsAggregation.Models.UserPreference", b =>

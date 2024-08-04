@@ -57,17 +57,24 @@ public class CommentController : ControllerBase
         return Ok();
     }
 
-    [HttpPost("ReportComment")]
+    [HttpPost("report")]
     public async Task<IActionResult> ReportComment(CommentReportDto commentReport)
     {
         await _commentService.ReportComment(commentReport);
         return Ok();
     }
 
-    [HttpGet("GetReportedComments")]
+    [HttpGet("getReported")]
     public async Task<IActionResult> GetAllReportedComments()
     {
         var reportedComments = await _commentService.GetAllReportedComments();
         return Ok(reportedComments);
+    }
+
+    [HttpPut("updateReported/{id}")]
+    public async Task<IActionResult> UpdateReportComment(Guid id, [FromBody] sbyte status)
+    {
+        await _commentService.UpdateReportComment(id, status);
+        return Ok();
     }
 }

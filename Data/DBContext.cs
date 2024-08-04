@@ -27,6 +27,7 @@ namespace NewsAggregation.Data
         public DbSet<Plans> Plans { get; set; }
         public DbSet<Subscriptions> Subscriptions { get; set; }
         public DbSet<UserHistory> WatchHistories { get; set; }
+        public DbSet<CommentReports> CommentReports { get; set; }
 
 
 

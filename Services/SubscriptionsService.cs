@@ -102,6 +102,7 @@ namespace NewsAggregation.Services
                         {
                             Price = subscriptionRequest.StripePriceId,
                         },
+
                     },
                 };
                 var service = new SubscriptionService();

@@ -5,12 +5,7 @@ namespace NewsAggregation.Models
     public class Payment
     {
         public Guid Id { get; set; }
-        
-        public Guid SubscriptionId { get; set; }
-        [ForeignKey("SubscriptionId")]
-        public Subscriptions Subscription { get; set; }
-
-        public decimal Amount { get; set; }
+        public long? Amount { get; set; }
         public string Currency { get; set; }
         public string PaymentMethod { get; set; }
         public string PaymentStatus { get; set; } = "Not Completed";

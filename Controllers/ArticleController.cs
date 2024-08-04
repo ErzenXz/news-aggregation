@@ -47,8 +47,7 @@ namespace NewsAggregation.Controllers
         public async Task<IActionResult> GetAllArticles(string? range = null)
         {
             var articles = await _articleService.GetAllArticles(range);
-            var articlesList = (OkObjectResult) articles;
-            return Ok(articlesList.Value);
+            return Ok(articles);
         }
 
         [Authorize(Roles = "Admin,SuperAdmin")]

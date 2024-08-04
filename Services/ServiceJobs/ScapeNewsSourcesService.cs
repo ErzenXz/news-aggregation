@@ -252,7 +252,7 @@ namespace NewsAggregation.Services.ServiceJobs
                                     ImageUrl = item.Image ?? "https://via.placeholder.com/500",
                                     Url = item.Link ?? "https://example.com",
                                     SourceId = source.Id,
-                                    AuthorId = new Guid("46611d66-cbd8-4a2f-9f9c-527edeab3984"),
+                                    AuthorId = new Guid("18a0c2fd-87df-4b01-a625-e3aa17216bf5"),
                                     CategoryId = 1,
                                     Views = 0,
                                     Likes = 0,

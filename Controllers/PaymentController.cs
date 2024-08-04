@@ -7,7 +7,7 @@ using NewsAggregation.Services.Interfaces;
 namespace NewsAggregation.Controllers
 {
     [Route("payment")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
+    [Authorize(Roles = "User,Admin,SuperAdmin")]
     [ApiController]
     public class PaymentController : ControllerBase
     {
@@ -46,7 +46,7 @@ namespace NewsAggregation.Controllers
             var newPayment = await _paymentService.CreatePayment(payment);
             return Ok(newPayment);
         }
-
+        /*
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePayment(Guid id, [FromBody] PaymentCreateDto payment)
         {
@@ -60,5 +60,6 @@ namespace NewsAggregation.Controllers
             var deletedPayment = await _paymentService.DeletePayment(id);
             return Ok(deletedPayment);
         }
+        */
     }
 }

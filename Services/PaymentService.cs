@@ -62,6 +62,7 @@ namespace NewsAggregation.Services
             }
         }
 
+        [HttpPost("create-payment")]
         public async Task<IActionResult> CreatePayment(PaymentCreateDto paymentRequest)
         {
             try
@@ -69,47 +70,40 @@ namespace NewsAggregation.Services
                 var options = new SessionCreateOptions
                 {
                     LineItems = new List<SessionLineItemOptions>
-                    {
-                        new SessionLineItemOptions
-                        {
-                            PriceData = new SessionLineItemPriceDataOptions
-                            {
-                                UnitAmount = (long)(paymentRequest.Amount * 100), // Amount in cents
-                                Currency = paymentRequest.Currency,
-                                ProductData = new SessionLineItemPriceDataProductDataOptions
-                                {
-                                    Name = paymentRequest.PaymentDescription,
-                                },
-                            },
-                            Quantity = 1,
-                        },
-                    },
-                    Mode = "payment",
-                    SuccessUrl = "http://localhost:5173/success", // Placeholder URL
-                    CancelUrl = "http://localhost:5173/cancel", // Placeholder URL
+            {
+                new SessionLineItemOptions
+                {
+                    Price = paymentRequest.StripePriceId,
+                    Quantity = 1,
+                   
+                },
+            },
+                    Mode = "subscription",
+                    SuccessUrl = "http://localhost:5173/success",
+                    CancelUrl = "http://localhost:5173/cancel",
+                    Customer = paymentRequest.StripeCustomerId 
                 };
 
                 var service = new SessionService();
                 Session session = await service.CreateAsync(options);
-                
+
+
                 var payment = new Payment
                 {
                     Id = Guid.NewGuid(),
-                    SubscriptionId = paymentRequest.SubscriptionId,
-                    Amount = paymentRequest.Amount,
-                    Currency = paymentRequest.Currency,
-                    PaymentMethod = paymentRequest.PaymentMethod,
-                    PaymentStatus = paymentRequest.PaymentStatus,
-                    PaymentGateway = paymentRequest.PaymentGateway,
-                    PaymentReference = paymentRequest.PaymentReference,
-                    PaymentDescription = paymentRequest.PaymentDescription,
-                    PaymentDate = paymentRequest.PaymentDate
+                    Amount = session.AmountTotal,
+                    Currency = session.Currency,
+                    PaymentMethod = "Pending",
+                    PaymentStatus = "Pending",
+                    PaymentGateway = "Stripe",
+                    PaymentReference = session.Id,
+                    PaymentDescription = paymentRequest.StripeProductId,
+                    PaymentDate = DateTime.UtcNow
                 };
 
                 _unitOfWork.Repository<Payment>().Create(payment);
                 await _unitOfWork.CompleteAsync();
 
-                Console.WriteLine($"Payment URL: {session.Url}");
                 return new OkObjectResult(new { url = session.Url });
             }
             catch (Exception ex)
@@ -119,6 +113,7 @@ namespace NewsAggregation.Services
             }
         }
 
+    /*
         public async Task<IActionResult> UpdatePayment(Guid id, PaymentCreateDto paymentRequest)
         {
             try
@@ -172,7 +167,9 @@ namespace NewsAggregation.Services
                 _logger.LogError(ex, "Error in DeletePayment");
                 return new StatusCodeResult(500);
             }
+  
         }
+       */
         
         // public async Task<IActionResult> CreateStripePayment(PaymentCreateDto paymentRequest)
         // {

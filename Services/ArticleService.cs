@@ -131,7 +131,7 @@ namespace NewsAggregation.Services
 
                 _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles {page * pageSize}-{(page + 1) * pageSize - 1}/{articles.Count}");
 
-                return new OkObjectResult(new { Articles = articles, Ads = ads });
+                return new OkObjectResult(articles.ToList());
 
             }
             catch (Exception ex)
@@ -221,7 +221,7 @@ namespace NewsAggregation.Services
                 // Content-Range header
                 _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles {page * pageSize}-{(page + 1) * pageSize - 1}/{articles.Count}");
 
-                return new OkObjectResult(articles);
+                return new OkObjectResult(articles.ToList());
             }
             catch (Exception ex)
             {
@@ -257,7 +257,7 @@ namespace NewsAggregation.Services
                 // Content-Range header
                 _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles {page * pageSize}-{(page + 1) * pageSize - 1}/{articles.Count}");
 
-                return new OkObjectResult(articles);
+                return new OkObjectResult(articles.ToList());
             }
             catch (Exception ex)
             {
@@ -306,7 +306,7 @@ namespace NewsAggregation.Services
                 // Content-Range header
                 _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles {page * pageSize}-{(page + 1) * pageSize - 1}/{articles.Count}");
 
-                return new OkObjectResult(articles);
+                return new OkObjectResult(articles.ToList());
             }
             catch (Exception ex)
             {
@@ -352,7 +352,7 @@ namespace NewsAggregation.Services
                 // Content-Range header
                 _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles 0-4/{articles.Count}");
 
-                return new OkObjectResult(articles);
+                return new OkObjectResult(articles.ToList());
             }
             catch (Exception ex)
             {
@@ -586,8 +586,9 @@ namespace NewsAggregation.Services
                     }
                 }
 
-                return response.Documents;
+                return response.Documents.ToList<Article>();
             }
+
             return Enumerable.Empty<Article>();
         }
 

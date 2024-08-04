@@ -9,7 +9,7 @@ namespace NewsAggregation.Services.Interfaces
     {
         public Task<IActionResult> GetAdmins();
         public  Task<IActionResult> DeleteAdmin(Guid id);
-        public  Task<IActionResult> CreateAdmin([FromBody] User user);
+        public  Task<IActionResult> CreateAdmin(Guid userId);
         public Task<IActionResult> GetUsers();
         public Task<IActionResult> UpdateUser(Guid id, [FromBody] User user);
         public Task<IActionResult> GetIpMitigations(int page = 1);

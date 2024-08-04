@@ -61,11 +61,11 @@ namespace NewsAggregation.Controllers
         }
 
         [HttpPost("create",Name ="admins/create")]
-        public async Task<IActionResult> CreateAdmin([FromBody] User user)
+        public async Task<IActionResult> CreateAdmin(Guid userId)
         {
             try
             {
-                return await _adminService.CreateAdmin(user);
+                return await _adminService.CreateAdmin(userId);
             }
             catch (Exception ex)
             {

@@ -72,12 +72,18 @@ namespace NewsAggregation.Services
             }
         }
 
-        public async Task<IActionResult> CreateAdmin([FromBody] User user)
+        public async Task<IActionResult> CreateAdmin(Guid userId)
         {
             try
             {
+                var user = await _dBContext.Users.FirstOrDefaultAsync(x => x.Id == userId && x.Role == "User");
+
+                if (user == null)
+                {
+                    return new NotFoundObjectResult(new { Code = 61, Message = "User not found." });
+                }
                 user.Role = "Admin";
-                await _dBContext.Users.AddAsync(user);
+                _dBContext.Users.Update(user);
                 await _dBContext.SaveChangesAsync();
 
                 return new OkObjectResult(new { Code = 402, Message = "Admin created successfully" });

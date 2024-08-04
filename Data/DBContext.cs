@@ -15,7 +15,7 @@ namespace NewsAggregation.Data
 
         public DbSet<User> Users { get; set; }
         public DbSet<Article> Articles { get; set; }
-        public DbSet<Category> Categories { get; set; }
+        public virtual DbSet<Category> Categories { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<UserPreference> UserPreferences { get; set; }
         public DbSet<Source> Sources { get; set; }

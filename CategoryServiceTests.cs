@@ -7,6 +7,7 @@ using NewsAggregation.DTO.Category;
 using NewsAggregation.Services;
 using News_aggregation.Entities;
 using System.Linq.Expressions;
+using Xunit;
 
 namespace NewsAggregation.Tests
 {

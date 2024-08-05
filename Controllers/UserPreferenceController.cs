@@ -20,21 +20,21 @@ namespace NewsAggregation.Controllers
             _userPreferenceService = userPreferenceService;
         }
 
-        [HttpPost("add")]
+        [HttpPost("add"), Authorize(Roles = "User,Premium,Admin,SuperAdmin")]
         public async Task<ActionResult<UserPreferencesCreateDto>> CreateUserPreferences(UserPreferencesCreateDto createUserPreferences)
         {
             var createdUserPreferences = await _userPreferenceService.CreateUserPreferences(createUserPreferences);
             return Ok(createdUserPreferences);
         }
 
-        [HttpDelete("remove/{id}")]
+        [HttpDelete("remove/{id}"), Authorize(Roles = "User,Premium,Admin,SuperAdmin")]
         public async Task<IActionResult> DeleteUserPreferences(Guid id)
         {
             await _userPreferenceService.DeleteUserPreferences(id);
             return NoContent();
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id}"), Authorize(Roles ="Admin,SuperAdmin")]
         public async Task<IActionResult> GetUserPreferencesById(Guid id)
         {
             var userPreferences = await _userPreferenceService.GetUserPreferencesById(id);
@@ -42,14 +42,14 @@ namespace NewsAggregation.Controllers
         }
 
 
-        [HttpGet("all")]
+        [HttpGet("all"), Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> GetAllPreferences(string? range = null)
         {
             var userPreferences = await _userPreferenceService.GetAllPreferences(range);
             return Ok(userPreferences);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{id}"), Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> UpdateUserPreferences(Guid id, [FromBody] UserPreferencesCreateDto updateUserPreferences)
         {
             var updatedUserPreferences = await _userPreferenceService.UpdateUserPreferences(id, updateUserPreferences);

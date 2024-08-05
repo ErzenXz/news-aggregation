@@ -1,4 +1,4 @@
-﻿namespace NewsAggregation.Services
+﻿namespace NewsAggregation.Helpers
 {
     public class QueryParameters
     {

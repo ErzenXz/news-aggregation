@@ -50,6 +50,15 @@ namespace NewsAggregation.Controllers
 
         }
 
+        [HttpGet("personalized"), AllowAnonymous]
+        public async Task<IActionResult> GetPersonalizedAds(string? range = null)
+        {
+            var response = await _adsService.GetPersonalizedAds(range);
+            return response;
+
+        }
+
+
         [HttpPost("create")]
         public async Task<IActionResult> CreateAd(AdCreateDto adRequest)
         {

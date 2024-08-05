@@ -1,8 +1,10 @@
-﻿namespace NewsAggregation.DTO.Comment
+﻿using static NewsAggregation.Helpers.CommentReportTypes;
+
+namespace NewsAggregation.DTO.Comment
 {
     public class CommentReportDto
     {
-        public Guid Id { get; set; }
-        public Guid UserId { get; set; }
+        public Guid CommentId { get; set; }
+        public CommentReportType ReportType { get; set; }
     }
 }

@@ -82,6 +82,11 @@ public class CachedAdsService : IAdsService
         return new OkObjectResult(result);
     }
 
+    public async Task<IActionResult> GetPersonalizedAds(string? range = null)
+    {
+        return await _decorated.GetPersonalizedAds(range);
+    }
+
     public async Task<IActionResult> CreateAd(AdCreateDto adRequest)
     {
         return await _decorated.CreateAd(adRequest);

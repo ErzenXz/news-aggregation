@@ -45,12 +45,6 @@ namespace NewsAggregation.Controllers
             return Ok(subscriptions);
         }
 
-        [HttpPost("create")]
-        public async Task<IActionResult> CreateSubscription([FromBody] SubscriptionCreateDto subscription)
-        {
-            var newSubscription = await _subscriptionsService.CreateSubscription(subscription);
-            return Ok(newSubscription);
-        }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateSubscription(Guid id, [FromBody] SubscriptionCreateDto subscription)

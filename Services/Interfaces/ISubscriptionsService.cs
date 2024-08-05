@@ -9,9 +9,9 @@ namespace NewsAggregation.Services.Interfaces
         public Task<IActionResult> GetSubscriptionById(Guid id);
         public Task<IActionResult> GetAllSubscriptions(string? range = null);
         public Task<IActionResult> GetAllActiveSubscriptions(string? range = null);
-        public Task<IActionResult> CreateSubscription(SubscriptionCreateDto subscriptionRequest);
         public Task<IActionResult> UpdateSubscription(Guid id, SubscriptionCreateDto subscriptionRequest);
         public Task<IActionResult> DeleteSubscription(Guid id);
+        public Task<IActionResult> CancelSubscription(Guid id);
     }
 
 }

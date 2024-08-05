@@ -72,7 +72,7 @@ namespace NewsAggregation.Services
                     await _unitOfWork.CompleteAsync();
 
                     // Remove article from elastic search
-                    //await _elasticClient.DeleteAsync<Article>(id);
+                    await _elasticClient.DeleteAsync<Article>(id);
 
                     return new OkResult();
                 }
@@ -122,16 +122,11 @@ namespace NewsAggregation.Services
             {
                 var articles = await _unitOfWork.Repository<Article>().GetAll().OrderByDescending(a => a.CreatedAt).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
-
-                // Get 3-5 random ads
-                var ads = await _unitOfWork.Repository<Ads>().GetAll().OrderBy(a => Guid.NewGuid()).Take(new Random().Next(3, 5)).ToListAsync();
-
-
                 // Add Content-Range header
 
                 _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles {page * pageSize}-{(page + 1) * pageSize - 1}/{articles.Count}");
 
-                return new OkObjectResult(new { Articles = articles, Ads = ads });
+                return new OkObjectResult(articles.ToList());
 
             }
             catch (Exception ex)
@@ -167,7 +162,7 @@ namespace NewsAggregation.Services
                 var updatedArticleDto = _mapper.Map<ArticleUpdateDto>(article);
 
                 // Update article in elastic search
-                //await _elasticClient.UpdateAsync<Article>(id, u => u.Doc(article));
+                await _elasticClient.UpdateAsync<Article>(id, u => u.Doc(article));
 
                 return new OkObjectResult(updatedArticleDto);
             }
@@ -221,7 +216,7 @@ namespace NewsAggregation.Services
                 // Content-Range header
                 _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles {page * pageSize}-{(page + 1) * pageSize - 1}/{articles.Count}");
 
-                return new OkObjectResult(articles);
+                return new OkObjectResult(articles.ToList());
             }
             catch (Exception ex)
             {
@@ -257,7 +252,7 @@ namespace NewsAggregation.Services
                 // Content-Range header
                 _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles {page * pageSize}-{(page + 1) * pageSize - 1}/{articles.Count}");
 
-                return new OkObjectResult(articles);
+                return new OkObjectResult(articles.ToList());
             }
             catch (Exception ex)
             {
@@ -306,7 +301,7 @@ namespace NewsAggregation.Services
                 // Content-Range header
                 _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles {page * pageSize}-{(page + 1) * pageSize - 1}/{articles.Count}");
 
-                return new OkObjectResult(articles);
+                return new OkObjectResult(articles.ToList());
             }
             catch (Exception ex)
             {
@@ -314,7 +309,7 @@ namespace NewsAggregation.Services
                 return new StatusCodeResult(500);
             }
         }
-
+ /*
         public async Task<IActionResult> GetRecommendetArticles()
         {
             try
@@ -352,14 +347,14 @@ namespace NewsAggregation.Services
                 // Content-Range header
                 _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles 0-4/{articles.Count}");
 
-                return new OkObjectResult(articles);
+                return new OkObjectResult(articles.ToList());
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetRecommendetArticles");
                 return new BadRequestObjectResult(new { Messages = ex.Message });
             }
-        }
+        }*/
 
         public async Task<IActionResult> GetTrendingArticles()
         {
@@ -394,7 +389,7 @@ namespace NewsAggregation.Services
                 // Content-Range header
                 _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles 0-4/{articles.Count}");
 
-                return new OkObjectResult(articleDetails);
+                return new OkObjectResult(articleDetails.ToList());
             }
             catch (Exception ex)
             {
@@ -402,6 +397,204 @@ namespace NewsAggregation.Services
                 return new StatusCodeResult(500);
             }
         }
+
+        public async Task<IActionResult> GetRecommendedArticles()
+        {
+            try
+            {
+                // Get refresh token from cookies
+                var refreshToken = _httpContextAccessor.HttpContext.Request.Cookies["refreshToken"];
+
+                // Get user agent from request headers
+                var userAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString();
+                var ipAddress = _httpContextAccessor.HttpContext.Connection.RemoteIpAddress?.ToString();
+
+                User user = null;
+                if (!string.IsNullOrEmpty(refreshToken))
+                {
+                    user = await FindUserByRefreshToken(refreshToken, userAgent);
+                }
+
+                List<Article> recommendedArticles;
+
+                if (user != null)
+                {
+                    // Get recommended articles for logged-in user
+                    recommendedArticles = await GetRecommendedArticlesForUser(user.Id);
+                }
+                else
+                {
+                    // Get recommended articles for non-logged-in user
+                    recommendedArticles = await GetRecommendedArticlesForNonLoggedInUser(ipAddress, userAgent);
+                }
+
+                // Content-Range header for pagination support
+                _httpContextAccessor.HttpContext.Response.Headers.Add("Content-Range", $"articles 0-4/{recommendedArticles.Count}");
+
+                return new OkObjectResult(recommendedArticles);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetRecommendedArticles");
+                return new BadRequestObjectResult(new { Message = "An error occurred while fetching recommended articles." });
+            }
+        }
+
+        private async Task<List<Article>> GetRecommendedArticlesForUser(Guid userId)
+        {
+            var userHistory = await _unitOfWork.Repository<UserHistory>()
+                .GetByCondition(uh => uh.UserId == userId)
+                .ToListAsync();
+
+            if (!userHistory.Any())
+            {
+                // If user has no history, return the latest articles
+                return await _unitOfWork.Repository<Article>()
+                    .GetAll()
+                    .OrderByDescending(a => a.CreatedAt)
+                    .Take(5)
+                    .ToListAsync();
+            }
+
+            // Get most used tags from user history
+            var tags = userHistory
+                .Where(uh => !string.IsNullOrEmpty(uh.Tags))
+                .SelectMany(uh => uh.Tags.Split(","))
+                .GroupBy(t => t)
+                .OrderByDescending(t => t.Count())
+                .Select(t => t.Key)
+                .Take(5)
+                .ToList();
+
+            // Get articles matching most used tags
+            var recommendedArticles = await _unitOfWork.Repository<Article>()
+                .GetAll()
+                .Where(a => tags.Any(t => a.Tags.Contains(t)))
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(5)
+                .ToListAsync();
+
+            return recommendedArticles.Any() ? recommendedArticles : await GetLatestArticles();
+        }
+
+        private async Task<List<Article>> GetRecommendedArticlesForNonLoggedInUser(string ipAddress, string userAgent)
+        {
+
+            var articles = await _unitOfWork.Repository<Article>().GetAll().OrderByDescending(a => a.CreatedAt).Take(5).ToListAsync();
+
+            if(articles.Any())
+            {
+                return articles;
+            }
+         
+
+            return await GetRecommendedArticlesForNearbyUsers(ipAddress) ?? await GetLatestArticles();
+        }
+
+        private async Task<List<Article>> GetRecommendedArticlesForNearbyUsers(string ipAddress)
+        {
+            var ipPrefix = string.Join(".", ipAddress.Split('.').Take(3)) + ".";
+
+            var nearbyUserStats = await _unitOfWork.Repository<ArticleStats>()
+                .GetByCondition(uh => uh.IpAddress.StartsWith(ipPrefix))
+                .ToListAsync();
+
+            if (nearbyUserStats.Any())
+            {
+                // Get most used tags from nearby users
+                var tags = nearbyUserStats
+                    .Where(uh => !string.IsNullOrEmpty(uh.Article.Tags))
+                    .SelectMany(uh => uh.Article.Tags.Split(","))
+                    .GroupBy(t => t)
+                    .OrderByDescending(t => t.Count())
+                    .Select(t => t.Key)
+                    .Take(5)
+                    .ToList();
+
+                // Get articles matching most used tags
+                var recommendedArticles = await _unitOfWork.Repository<Article>()
+                    .GetAll()
+                    .Where(a => tags.Any(t => a.Tags.Contains(t)))
+                    .OrderByDescending(a => a.CreatedAt)
+                    .Take(5)
+                    .ToListAsync();
+
+                return recommendedArticles;
+            }
+
+            return null;
+        }
+
+        public async Task<IActionResult> GetForYouArticles()
+        {
+            try
+            {
+                var refreshToken = _httpContextAccessor.HttpContext.Request.Cookies["refreshToken"];
+                var userAgent = _httpContextAccessor.HttpContext.Request.Headers["User-Agent"].ToString();
+                var ipAddress = _httpContextAccessor.HttpContext.Connection.RemoteIpAddress?.ToString();
+
+                User user = null;
+                if (!string.IsNullOrEmpty(refreshToken))
+                {
+                    user = await FindUserByRefreshToken(refreshToken, userAgent);
+                }
+
+                if (user == null)
+                {
+                    return new UnauthorizedResult();
+                }
+
+                // Get user preferences
+                var userPreferences = await _unitOfWork.Repository<UserPreference>()
+                    .GetByCondition(up => up.UserId == user.Id)
+                    .Select(up => up.CategoryId)
+                    .ToListAsync();
+
+                if (!userPreferences.Any())
+                {
+                    var latestArticles = await GetLatestArticles();
+                    return new OkObjectResult(latestArticles);
+                }
+
+                // Get bookmarked articles
+                var bookmarkedArticles = await _unitOfWork.Repository<Bookmark>()
+                    .GetByCondition(b => b.UserId == user.Id)
+                    .Select(b => b.Article)
+                    .ToListAsync();
+
+                // Get recommended articles based on preferences and bookmarks
+                var recommendedArticles = await _unitOfWork.Repository<Article>()
+                    .GetByCondition(a => userPreferences.Contains(a.CategoryId))
+                    .OrderByDescending(a => a.CreatedAt)
+                    .Take(10)
+                    .ToListAsync();
+
+                var uniqueArticles = recommendedArticles
+                    .Union(bookmarkedArticles)
+                    .Distinct()
+                    .OrderByDescending(a => a.CreatedAt)
+                    .Take(10)
+                    .ToList();
+
+                return new OkObjectResult(uniqueArticles);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetForYouArticles");
+                return new BadRequestObjectResult(new { Message = "An error occurred while fetching recommended articles." });
+            }
+        }
+
+
+        private async Task<List<Article>> GetLatestArticles()
+        {
+            return await _unitOfWork.Repository<Article>()
+                .GetAll()
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(5)
+                .ToListAsync();
+        }
+
 
 
 
@@ -586,8 +779,9 @@ namespace NewsAggregation.Services
                     }
                 }
 
-                return response.Documents;
+                return response.Documents.ToList<Article>();
             }
+
             return Enumerable.Empty<Article>();
         }
 

@@ -16,4 +16,5 @@ public interface ICommentService
     Task<IActionResult> DeleteComment(Guid id);
     Task<IActionResult> ReportComment(CommentReportDto commentReportDto);
     Task<IActionResult> GetAllReportedComments(string? range = null);
+    Task<IActionResult> UpdateReportComment(Guid guid, sbyte status);
 }

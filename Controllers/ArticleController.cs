@@ -47,8 +47,23 @@ namespace NewsAggregation.Controllers
         public async Task<IActionResult> GetAllArticles(string? range = null)
         {
             var articles = await _articleService.GetAllArticles(range);
-            var articlesList = (OkObjectResult) articles;
-            return Ok(articlesList.Value);
+
+            if (articles is OkObjectResult okResult)
+            {
+                return Ok(okResult.Value);
+            }
+            else if (articles is NotFoundResult)
+            {
+                return NotFound();
+            }
+            else if (articles is BadRequestObjectResult badRequestResult)
+            {
+                return BadRequest(badRequestResult.Value);
+            }
+            else
+            {
+                return StatusCode(500, "Unexpected result type");
+            }
         }
 
         [Authorize(Roles = "Admin,SuperAdmin")]
@@ -59,12 +74,19 @@ namespace NewsAggregation.Controllers
             return Ok(updatedArticle);
         }
 
+        [HttpGet("for-you"), Authorize(Roles = "User,Premium,Admin,SuperAdmin")]
+        public async Task<IActionResult> GetForYouArticles()
+        {
+            var forYouArticles = await _articleService.GetForYouArticles();
+            var forYouArticlesList = (OkObjectResult) forYouArticles;
+            return Ok(forYouArticlesList.Value);
+        }
 
         [AllowAnonymous]
         [HttpGet("recommended")]
         public async Task<IActionResult> GetRecommendetArticles()
         {
-            var recommendedArticles = await _articleService.GetRecommendetArticles();
+            var recommendedArticles = await _articleService.GetRecommendedArticles();
             var recommendedArticlesList = (OkObjectResult) recommendedArticles;
             return Ok(recommendedArticlesList);
         }

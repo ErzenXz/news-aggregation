@@ -192,18 +192,12 @@ namespace PersonalPodcast.Controllers
             }
         }
 
-        [HttpPost("login-{provider}")]
-        public async Task<IActionResult> LoginProvider(string provider)
+        [HttpGet("login-{provider}")]
+        public  IActionResult LoginProvider(string provider)
         {
-            var response = await _authService.LoginProvider(HttpContext, provider);
-            if (response != null)
-            {
-                return response;
-            }
-            else
-            {
-                return BadRequest(new { Message = "Error logging in with provider.", Code = 1000 });
-            }
+            var response = _authService.LoginProvider(provider);
+
+            return response;
         }
 
         [HttpGet("external-login-callback")]

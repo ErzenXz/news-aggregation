@@ -2,17 +2,21 @@
 {
     public class Subscriptions
     {
-        public Guid Id { get; set; }
-        public Guid UserId { get; set; }
-        public User User { get; set; }
-        public Guid PlanId { get; set; }
-        public Plans Plan { get; set; }
+        public string Id { get; set; }
+        public string UserId { get; set; }
+        public string PlanId { get; set; }
         public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-        public decimal Amount { get; set; }
+        public DateTime? EndDate { get; set; }
+        public long Amount { get; set; }
         public string Currency { get; set; }
-
-        ICollection<Payment> Payments { get; set; }
+        
+        public string StripeSubscriptionId { get; set; }
+        
+        public string StripeCustomerId { get; set; }
+        public string StripePriceId { get; set; }
+        public bool IsPaid { get; set; }
+        public bool IsActive { get; set; }
+        public DateTime LastPaymentDate { get; set; }
 
     }
 }

@@ -31,8 +31,7 @@ namespace NewsAggregation.Models
         public string? ExternalProvider { get; set; }
         public string? ExternalUserId { get; set; }
         public bool IsExternal { get; set; } = false;
-
-
+        public string StripeCustomerId { get; set; }
 
         // Personalization
         public string? TimeZone { get; set; } 

@@ -47,7 +47,7 @@ namespace NewsAggregation.Services.Cached
 
             _cache.SetString(cacheKey, serializedResult, new DistributedCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1)
             });
 
             return new OkObjectResult(result);
@@ -69,7 +69,7 @@ namespace NewsAggregation.Services.Cached
 
             _cache.SetString(cacheKey, serializedResult, new DistributedCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
             });
             return new OkObjectResult(result);
         }
@@ -90,7 +90,7 @@ namespace NewsAggregation.Services.Cached
 
             _cache.SetString(cacheKey, serializedResult, new DistributedCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(20)
             });
             return new OkObjectResult(result);
         }
@@ -122,10 +122,15 @@ namespace NewsAggregation.Services.Cached
 
             _cache.SetString(cacheKey, serializedResult, new DistributedCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(3)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
             });
 
             return new OkObjectResult(result);
+        }
+
+        public Task<IActionResult> UpdateReportComment(Guid guid, sbyte status)
+        {
+            return _decorated.UpdateReportComment(guid, status);
         }
 
     }

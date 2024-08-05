@@ -10,7 +10,10 @@
         public int Duration { get; set; }
         public string Currency { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string StripeProductId { get; set; }
+        public string StripePriceId { get; set; }
         public bool IsActive { get; set; }
+        
 
         ICollection<Subscriptions> Subscriptions { get; set; }
 

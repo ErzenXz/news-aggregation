@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NewsAggregation.DTO.Comment;
 using NewsAggregation.Services.Interfaces;
@@ -15,7 +16,7 @@ public class CommentController : ControllerBase
         _commentService = commentService;
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id}"), Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<IActionResult> GetCommentById(Guid id)
     {
         var comment = await _commentService.GetCommentById(id);
@@ -23,9 +24,9 @@ public class CommentController : ControllerBase
     }
 
     [HttpGet("article/{articleId}")]
-    public async Task<IActionResult> GetCommentsByArticleId(Guid articleId)
+    public async Task<IActionResult> GetCommentsByArticleId(Guid articleId, string? range = null)
     {
-        var comments = await _commentService.GetCommentsByArticleId(articleId);
+        var comments = await _commentService.GetCommentsByArticleId(articleId, range);
         return Ok(comments);
     }
 
@@ -57,17 +58,24 @@ public class CommentController : ControllerBase
         return Ok();
     }
 
-    [HttpPost("ReportComment")]
+    [HttpPost("report")]
     public async Task<IActionResult> ReportComment(CommentReportDto commentReport)
     {
         await _commentService.ReportComment(commentReport);
         return Ok();
     }
 
-    [HttpGet("GetReportedComments")]
+    [HttpGet("getReported"), Authorize(Roles = "Admin,SuperAdmin")]
     public async Task<IActionResult> GetAllReportedComments()
     {
         var reportedComments = await _commentService.GetAllReportedComments();
         return Ok(reportedComments);
+    }
+
+    [HttpPut("updateReported/{id}"), Authorize(Roles = "Admin,SuperAdmin")]
+    public async Task<IActionResult> UpdateReportComment(Guid id, [FromBody] sbyte status)
+    {
+        await _commentService.UpdateReportComment(id, status);
+        return Ok();
     }
 }

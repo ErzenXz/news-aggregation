@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using NewsAggregation.Data;
 using NewsAggregation.Data.UnitOfWork;
 using NewsAggregation.DTO.Plans;
+using NewsAggregation.Helpers;
 using NewsAggregation.Models;
 using NewsAggregation.Services.Interfaces;
+using Stripe;
 
 namespace NewsAggregation.Services
 {
@@ -87,6 +89,24 @@ namespace NewsAggregation.Services
         {
             try
             {
+                var productOptions = new ProductCreateOptions
+                {
+                    Name = plan.Name,
+                    Description = plan.Description,
+                };
+                var product = await new ProductService().CreateAsync(productOptions);
+
+                var priceOptions = new PriceCreateOptions
+                {
+                    UnitAmount = (long)(plan.Price * 100), // Amount in cents
+                    Currency = plan.Currency,
+                    Recurring = new PriceRecurringOptions
+                    {
+                        Interval = "month",
+                    },
+                    Product = product.Id,
+                };
+                var price = await new PriceService().CreateAsync(priceOptions);
 
                 Plans pl = new ();
                
@@ -100,6 +120,8 @@ namespace NewsAggregation.Services
                 pl.IsActive = true;
                 pl.Description = plan.Description;
                 pl.CreatedAt = DateTime.UtcNow;
+                pl.StripeProductId = product.Id;
+                pl.StripePriceId = price.Id;
 
                 _unitOfWork.Repository<Plans>().Create(pl);
                 await _unitOfWork.CompleteAsync();

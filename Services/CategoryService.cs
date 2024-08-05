@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using News_aggregation.Entities;
 using NewsAggregation.Data.UnitOfWork;
 using NewsAggregation.DTO.Category;
+using NewsAggregation.Helpers;
 using NewsAggregation.Services.Interfaces;
 using System;
 using System.Collections.Generic;

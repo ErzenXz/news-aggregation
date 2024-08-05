@@ -18,6 +18,9 @@ using NewsAggregation.Services.ServiceJobs.Email;
 using NewsAggregation.Helpers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
+using Stripe;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.Extensions.Logging;
 
 namespace NewsAggregation.Services
 {
@@ -89,6 +92,8 @@ namespace NewsAggregation.Services
                 }
             }
 
+            
+
             user.Id = Guid.NewGuid();
             user.Email = email.ToLower();
             user.Password = passwordHashed;
@@ -103,6 +108,10 @@ namespace NewsAggregation.Services
             user.TimeZone = userRequest.TimeZone;
             user.TokenVersion = 1;
             user.ProfilePicture = "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(userRequest.FullName) + "&background=random&color=fff&rounded=true";
+
+            var Customer = await CreateStripeCustomer(userRequest, user.Id);
+
+            user.StripeCustomerId = Customer.Id;
 
             // Create a new refresh token
             var refreshTokenObj = new RefreshTokens
@@ -448,7 +457,7 @@ namespace NewsAggregation.Services
 
                 _emailQueueService.QueueEmail(emailMessage);
 
-                return new OkObjectResult(new { Message = $"Here is your new generated password: {newPassword}, It was also send via email.", Code = 69 });
+                return new OkObjectResult(new { Password = newPassword, Message = $"Here is your new generated password: {newPassword}, It was also send via email.", Code = 69 });
 
             }
             else
@@ -495,9 +504,8 @@ namespace NewsAggregation.Services
                     From = "noreply@sapientia.life",
                     To = email,
                     Subject = "Request to Reset Password",
-                    Body = $"<h3>Hello {user.FullName}!</h3><br>You have requested to reset your password in PersonalPodcast.<br>Here is your one time reset code: <strong>" + randomCode + "</strong><br>" +
+                    Body = $"<h3>Hello {user.FullName}!</h3><br>You have requested to reset your password in Sapientia.<br>Here is your one time reset code: <strong>" + randomCode + "</strong><br>" +
                     "<p>You can use this link to directly change your password</p> " +
-                    $"<a href='https://api.sapientia.life/auth/forgot-password?email={user.Email}&code={randomCode}'>Reset password</a>" +
                     "Your link will expire in 15 minutes. If you did not request this, please ignore this email.<br>" +
                     "Thanks!"
                 };
@@ -731,7 +739,7 @@ namespace NewsAggregation.Services
 
             if (authLog == null)
             {
-                SetCookies("");
+                //SetCookies("");
                 return new UnauthorizedObjectResult(new { Message = "No previous login found.", Code = 1000 });
             }
 
@@ -813,40 +821,26 @@ namespace NewsAggregation.Services
 
             var httpContex = _httpContextAccessor.HttpContext;
 
-            // Set cookie for .erzen.tk
-            var cookieOptionsTk = new CookieOptions
-            {
-                HttpOnly = true,
-                Expires = DateTime.UtcNow.AddDays(7),
-                Secure = true,
-                SameSite = SameSiteMode.None,
-                Domain = ".erzen.tk"
-            };
-
-            // Set cookie for .erzen.xyz
             var cookieOptionsXyz = new CookieOptions
             {
                 HttpOnly = true,
-                Expires = DateTime.UtcNow.AddDays(7),
+                Expires = DateTime.UtcNow.AddDays(30),
                 Secure = true,
                 SameSite = SameSiteMode.None,
                 Domain = ".sapientia.life"
             };
 
-            // Set cookie for localhost
-            var cookieOptionsLocal = new CookieOptions
+            var cookieOptionsXyz2 = new CookieOptions
             {
                 HttpOnly = true,
-                Expires = DateTime.UtcNow.AddDays(7),
+                Expires = DateTime.UtcNow.AddDays(30),
                 Secure = true,
                 SameSite = SameSiteMode.None,
                 Domain = "localhost"
             };
 
-            httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsTk);
             httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsXyz);
-            httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsLocal);
-
+            httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsXyz2);
         }
 
         public string GetUserIp()
@@ -1136,7 +1130,7 @@ namespace NewsAggregation.Services
             return new OkObjectResult(new { Message = "Backup codes generated successfully", Code = 1000, BackupCodes = backupCodes });
         }
 
-        public async Task<IActionResult> LoginProvider(HttpContext httpContext, string provider)
+        public IActionResult LoginProvider(string provider)
         {
 
             if (!provider.Equals("Google") && !provider.Equals("GitHub") && !provider.Equals("Discord"))
@@ -1144,45 +1138,68 @@ namespace NewsAggregation.Services
                 return new BadRequestObjectResult(new { Message = "Invalid provider.", Code = 1000 });
             }
 
-            //if (!httpContext.Request.Headers.ContainsKey("X-Forwarded-Proto"))
-            //{
-            //    httpContext.Request.Headers["X-Forwarded-Proto"] = "https";
-            //}
+            var properties = new AuthenticationProperties { RedirectUri = "auth/external-login-callback" };
 
-            var redirectUrl = $"http://api.sapientia.life/auth/external-login-callback";
+            switch (provider)
+            {
+                case "Google":
+                    return new ChallengeResult(GoogleDefaults.AuthenticationScheme, properties);
+                case "GitHub":
+                    return new ChallengeResult(AspNet.Security.OAuth.GitHub.GitHubAuthenticationDefaults.AuthenticationScheme, properties);
+                case "Discord":
+                    return new ChallengeResult(AspNet.Security.OAuth.Discord.DiscordAuthenticationDefaults.AuthenticationScheme, properties);
+                default:
+                    throw new ArgumentException("Invalid authentication provider", nameof(provider));
+            }
 
-            var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
-
-            return new ChallengeResult(provider, properties);
         }
 
         public async Task<IActionResult> LoginProviderCallback()
         {
 
             var httpContext = _httpContextAccessor.HttpContext;
-            //if (!httpContext.Request.Headers.ContainsKey("X-Forwarded-Proto"))
-           // {
-               // httpContext.Request.Headers["X-Forwarded-Proto"] = "https";
-           // }
 
-            var result = await httpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            var response = await httpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            if(response.Principal == null)
+            {
+                var redirectUrl = $"https://sapientia.life/auth-callback?status=fail";
+                return new RedirectResult(redirectUrl);
+            }
+
+            var claims = response.Principal?.Identities.FirstOrDefault()?.Claims;
+
+            var externalUserId = claims?.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value ?? "external.login";
+
+            var name = response.Principal.FindFirstValue(ClaimTypes.Name) ?? externalUserId;
+            var givenName = response.Principal.FindFirstValue(ClaimTypes.GivenName) ?? externalUserId;
+            var email = response.Principal.FindFirstValue(ClaimTypes.Email) ?? externalUserId + "@sapientia.life";
+            var provider = claims?.FirstOrDefault(x => x.Type == "Provider")?.Value ?? "Unknown";
+
+            _logger.LogInformation($"External login: {provider} - {externalUserId} - {name} - {email}");
+
+            string picture;
+
+            switch (provider)
+            {
+                case "Google":
+                    picture = response.Principal.FindFirstValue("urn:google:picture")
+                               ?? "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(name) + "&background=random&color=fff&rounded=true";
+                    break;
+                case "GitHub":
+                    picture = response.Principal.FindFirstValue("avatar_url")
+                               ?? "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(name) + "&background=random&color=fff&rounded=true";
+                    break;
+                case "Discord":
+                    picture = response.Principal.FindFirstValue("urn:discord:avatar")
+                               ?? "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(name) + "&background=random&color=fff&rounded=true";
+                    break;
+                default:
+                    picture = "https://ui-avatars.com/api/?name=" + Uri.EscapeDataString(name) + "&background=random&color=fff&rounded=true";
+                    break;
+            }
 
 
-            return new OkObjectResult(result);
-
-            /*
-            if (!result.Succeeded) return new BadRequestObjectResult(new { Message = "Error processing external login.", Result = result });
-
-
-            // Retrieve user info from the external login
-            var claims = result.Principal?.Identities.FirstOrDefault()?.Claims;
-            var externalUserId = claims?.FirstOrDefault(x => x.Type == ClaimTypes.NameIdentifier)?.Value;
-            var email = claims?.FirstOrDefault(x => x.Type == ClaimTypes.Email)?.Value;
-            //var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
-            //var surname = result.Principal.FindFirst(ClaimTypes.Surname)?.Value;
-
-            // Get provider from the external login
-            var provider = claims?.FirstOrDefault(x => x.Type == "Provider")?.Value;
 
             // Check if the user is added in DB
 
@@ -1212,6 +1229,19 @@ namespace NewsAggregation.Services
                     DeviceName = "Unknown"
                 };
 
+                var ip = GetUserIp();
+
+                var authLog = new AuthLogs();
+                authLog.Email = email;
+                authLog.IpAddress = ip;
+                authLog.UserAgent = _httpContextAccessor.HttpContext.Request.Headers.UserAgent.ToString();
+                authLog.Date = DateTime.UtcNow;
+                authLog.Result = "External Login";
+
+
+                await _dBContext.authLogs.AddAsync(authLog);
+
+
                 await _dBContext.refreshTokens.AddAsync(refreshTokenObj);
 
                 await _dBContext.SaveChangesAsync();
@@ -1223,11 +1253,20 @@ namespace NewsAggregation.Services
                 // Set cookies
                 SetCookies(refreshToken);
 
-                var redirectUrl = $"https://localhost:5173/auth-callback?accessToken={newAccessToken}&refreshToken={refreshToken}";
+                var redirectUrl = $"https://sapientia.life/auth-callback?status=success&accessToken={newAccessToken}";
                 return new RedirectResult(redirectUrl);
-            } else
+            } 
+            else
             {
                 // User does not exist, add the user to the database
+
+                var userRegReq = new UserRegisterRequest()
+                {
+                    Email = email,
+                    FullName = name,
+                };
+
+                var stripeUser = await CreateStripeCustomer(userRegReq, Guid.NewGuid());
                 var newUser = new User
                 {
                     Email = email,
@@ -1243,11 +1282,25 @@ namespace NewsAggregation.Services
                     LastLogin = DateTime.UtcNow,
                     TokenVersion = 1,
                     ConnectingIp = GetUserIp(),
-                    Password = BCrypt.Net.BCrypt.HashPassword(""),
+                    Password = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
                     ExternalProvider = provider,
                     ExternalUserId = externalUserId,
-                    IsExternal = true
+                    IsExternal = true,
+                    StripeCustomerId = stripeUser.Id
                 };
+
+                var ip = GetUserIp();
+
+                var authLog = new AuthLogs();
+                authLog.Email = userRegReq.Email;
+                authLog.IpAddress = ip;
+                authLog.UserAgent = _httpContextAccessor.HttpContext.Request.Headers.UserAgent.ToString();
+                authLog.Date = DateTime.UtcNow;
+                authLog.Result = "External Register";
+
+
+                // Save user to database
+                await _dBContext.authLogs.AddAsync(authLog);
 
                 await _dBContext.Users.AddAsync(newUser);
 
@@ -1257,16 +1310,16 @@ namespace NewsAggregation.Services
 
                 var refreshToken = GenerateRefreshToken();
 
-                var currentRefreshTokenVersion = user.TokenVersion;
+                var currentRefreshTokenVersion = newUser.TokenVersion;
 
                 // Create a new refresh token
 
                 var refreshTokenObj = new RefreshTokens
                 {
-                    UserId = user.Id,
+                    UserId = newUser.Id,
                     Token = refreshToken,
                     Expires = DateTime.UtcNow.AddDays(7),
-                    TokenVersion = user.TokenVersion,
+                    TokenVersion = newUser.TokenVersion,
                     Created = DateTime.UtcNow,
                     CreatedByIp = GetUserIp(),
                     UserAgent = httpContext.Request.Headers["User-Agent"].ToString(),
@@ -1279,18 +1332,39 @@ namespace NewsAggregation.Services
 
                 // Generate new access token
 
-                string newAccessToken = CreateAccessToken(user);
+                string newAccessToken = CreateAccessToken(newUser);
 
                 // Set cookies
                 SetCookies(refreshToken);
 
                 // Return the access token
-                var redirectUrl = $"https://localhost:5173/auth-callback?accessToken={newAccessToken}&refreshToken={refreshToken}";
+                var redirectUrl = $"https://sapientia.life/auth-callback?status=success&accessToken={newAccessToken}";
                 return new RedirectResult(redirectUrl);
             }
+        }
 
-            */
+        public async Task<Customer> CreateStripeCustomer(UserRegisterRequest userRegisterRequest, Guid userID)
+        {
+                var options = new CustomerCreateOptions
+                {
+                    Email = userRegisterRequest.Email,
+                    Name = userRegisterRequest.FullName,
+                    Phone = "",
+                    Address = new AddressOptions
+                    {
+                        Line1 = "",
+                        Line2 = "",
+                        City = "",
+                        State = "",
+                        PostalCode = "",
+                        Country = ""
+                    }
+                };
 
+                var service = new CustomerService();
+                var customer = await service.CreateAsync(options);
+
+                return customer;
         }
 
         // Find the user by giving a refresh token

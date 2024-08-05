@@ -7,7 +7,6 @@ using NewsAggregation.Services.Interfaces;
 namespace NewsAggregation.Controllers
 {
     [Route("payment")]
-    [Authorize(Roles = "Admin,SuperAdmin")]
     [ApiController]
     public class PaymentController : ControllerBase
     {
@@ -25,14 +24,14 @@ namespace NewsAggregation.Controllers
         }
 
 
-        [HttpGet("{id}")]
+        [HttpGet("{id}"), Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> GetAllActivePayments(Guid id)
         {
             var payment = await _paymentService.GetPaymentById(id);
             return Ok(payment);
         }
 
-        [HttpGet("all")]
+        [HttpGet("all"), Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> GetAllPayments(string? range = null)
         {
             var payments = await _paymentService.GetAllPayments(range);
@@ -40,25 +39,12 @@ namespace NewsAggregation.Controllers
         }
 
 
-        [HttpPost("create")]
+        [HttpPost("create"), AllowAnonymous]
         public async Task<IActionResult> CreatePayment([FromBody] PaymentCreateDto payment)
         {
             var newPayment = await _paymentService.CreatePayment(payment);
             return Ok(newPayment);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePayment(Guid id, [FromBody] PaymentCreateDto payment)
-        {
-            var updatedPayment = await _paymentService.UpdatePayment(id, payment);
-            return Ok(updatedPayment);
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeletePayment(Guid id)
-        {
-            var deletedPayment = await _paymentService.DeletePayment(id);
-            return Ok(deletedPayment);
-        }
     }
 }

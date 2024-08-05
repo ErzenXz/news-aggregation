@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NewsAggregation.Data;
 using NewsAggregation.Data.UnitOfWork;
 using NewsAggregation.DTO.Plans;
+using NewsAggregation.Helpers;
 using NewsAggregation.Models;
 using NewsAggregation.Services.Interfaces;
 using Stripe;

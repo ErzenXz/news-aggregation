@@ -457,7 +457,7 @@ namespace NewsAggregation.Services
 
                 _emailQueueService.QueueEmail(emailMessage);
 
-                return new OkObjectResult(new { Message = $"Here is your new generated password: {newPassword}, It was also send via email.", Code = 69 });
+                return new OkObjectResult(new { Password = newPassword, Message = $"Here is your new generated password: {newPassword}, It was also send via email.", Code = 69 });
 
             }
             else
@@ -504,9 +504,8 @@ namespace NewsAggregation.Services
                     From = "noreply@sapientia.life",
                     To = email,
                     Subject = "Request to Reset Password",
-                    Body = $"<h3>Hello {user.FullName}!</h3><br>You have requested to reset your password in PersonalPodcast.<br>Here is your one time reset code: <strong>" + randomCode + "</strong><br>" +
+                    Body = $"<h3>Hello {user.FullName}!</h3><br>You have requested to reset your password in Sapientia.<br>Here is your one time reset code: <strong>" + randomCode + "</strong><br>" +
                     "<p>You can use this link to directly change your password</p> " +
-                    $"<a href='https://api.sapientia.life/auth/forgot-password?email={user.Email}&code={randomCode}'>Reset password</a>" +
                     "Your link will expire in 15 minutes. If you did not request this, please ignore this email.<br>" +
                     "Thanks!"
                 };
@@ -740,7 +739,7 @@ namespace NewsAggregation.Services
 
             if (authLog == null)
             {
-                SetCookies("");
+                //SetCookies("");
                 return new UnauthorizedObjectResult(new { Message = "No previous login found.", Code = 1000 });
             }
 
@@ -822,40 +821,26 @@ namespace NewsAggregation.Services
 
             var httpContex = _httpContextAccessor.HttpContext;
 
-            // Set cookie for .erzen.tk
-            var cookieOptionsTk = new CookieOptions
-            {
-                HttpOnly = true,
-                Expires = DateTime.UtcNow.AddDays(7),
-                Secure = true,
-                SameSite = SameSiteMode.None,
-                Domain = ".erzen.tk"
-            };
-
-            // Set cookie for .erzen.xyz
             var cookieOptionsXyz = new CookieOptions
             {
                 HttpOnly = true,
-                Expires = DateTime.UtcNow.AddDays(7),
+                Expires = DateTime.UtcNow.AddDays(30),
                 Secure = true,
                 SameSite = SameSiteMode.None,
                 Domain = ".sapientia.life"
             };
 
-            // Set cookie for localhost
-            var cookieOptionsLocal = new CookieOptions
+            var cookieOptionsXyz2 = new CookieOptions
             {
                 HttpOnly = true,
-                Expires = DateTime.UtcNow.AddDays(7),
+                Expires = DateTime.UtcNow.AddDays(30),
                 Secure = true,
                 SameSite = SameSiteMode.None,
                 Domain = "localhost"
             };
 
-            httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsTk);
             httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsXyz);
-            httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsLocal);
-
+            httpContex.Response.Cookies.Append("refreshToken", refreshToken, cookieOptionsXyz2);
         }
 
         public string GetUserIp()
@@ -1178,7 +1163,7 @@ namespace NewsAggregation.Services
 
             if(response.Principal == null)
             {
-                var redirectUrl = $"https://localhost:5173/auth-callback?status=fail";
+                var redirectUrl = $"https://sapientia.life/auth-callback?status=fail";
                 return new RedirectResult(redirectUrl);
             }
 
@@ -1268,7 +1253,7 @@ namespace NewsAggregation.Services
                 // Set cookies
                 SetCookies(refreshToken);
 
-                var redirectUrl = $"https://localhost:5173/auth-callback?status=success&accessToken={newAccessToken}";
+                var redirectUrl = $"https://sapientia.life/auth-callback?status=success&accessToken={newAccessToken}";
                 return new RedirectResult(redirectUrl);
             } 
             else
@@ -1353,11 +1338,10 @@ namespace NewsAggregation.Services
                 SetCookies(refreshToken);
 
                 // Return the access token
-                var redirectUrl = $"https://localhost:5173/auth-callback?status=success&accessToken={newAccessToken}";
+                var redirectUrl = $"https://sapientia.life/auth-callback?status=success&accessToken={newAccessToken}";
                 return new RedirectResult(redirectUrl);
             }
         }
-
 
         public async Task<Customer> CreateStripeCustomer(UserRegisterRequest userRegisterRequest, Guid userID)
         {

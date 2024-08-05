@@ -7,6 +7,7 @@ using News_aggregation.Entities;
 using NewsAggregation.Data;
 using NewsAggregation.Data.UnitOfWork;
 using NewsAggregation.DTO.UserPreferences;
+using NewsAggregation.Helpers;
 using NewsAggregation.Models;
 using NewsAggregation.Services.Interfaces;
 using System;

@@ -23,9 +23,9 @@ public class CommentController : ControllerBase
     }
 
     [HttpGet("article/{articleId}")]
-    public async Task<IActionResult> GetCommentsByArticleId(Guid articleId)
+    public async Task<IActionResult> GetCommentsByArticleId(Guid articleId, string? range = null)
     {
-        var comments = await _commentService.GetCommentsByArticleId(articleId);
+        var comments = await _commentService.GetCommentsByArticleId(articleId, range);
         return Ok(comments);
     }
 

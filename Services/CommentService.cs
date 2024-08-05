@@ -39,7 +39,9 @@ public class CommentService : ICommentService
             var page = queryParams.Page;
             var pageSize = queryParams.PerPage;
 
-            var comments = await _unitOfWork.Repository<Comment>().GetByCondition(x => x.ArticleId == articleId).Skip((page - 1) * pageSize).Take(pageSize)
+            var comments = await _unitOfWork.Repository<Comment>().GetByCondition(x => x.ArticleId == articleId)
+                .OrderByDescending(x => x.CreatedAt)
+                .Skip((page - 1) * pageSize).Take(pageSize)
                 .ToListAsync();
 
             return new OkObjectResult(comments);

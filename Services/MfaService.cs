@@ -33,7 +33,6 @@
             }
         }
 
-        // Generate backup codes GenerateBackupCodes
         public string GenerateBackupCodes()
         {
             var backupCodes = new List<string>();
@@ -46,14 +45,12 @@
 
         private string GenerateRandomCode()
         {
-            // Generate a secure random number
             var random = new byte[10];
             using (var rng = RandomNumberGenerator.Create())
             {
                 rng.GetBytes(random);
             }
 
-            // Convert the random number to a string
             return Convert.ToBase64String(random);
 
         }

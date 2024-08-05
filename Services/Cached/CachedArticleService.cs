@@ -78,9 +78,9 @@ namespace NewsAggregation.Services.Cached
         }
         
 
-        public Task<IActionResult> GetRecommendetArticles()
+        public Task<IActionResult> GetRecommendedArticles()
         {
-            return _decorated.GetRecommendetArticles();
+            return _decorated.GetRecommendedArticles();
         }
 
         public async Task<IActionResult> GetTrendingArticles()
@@ -103,6 +103,11 @@ namespace NewsAggregation.Services.Cached
             });
 
             return new OkObjectResult(result);
+        }
+
+        public Task<IActionResult> GetForYouArticles()
+        {
+            return _decorated.GetForYouArticles();
         }
 
         public Task<IActionResult> UpdateArticle(Guid id, ArticleUpdateDto updateArticle)

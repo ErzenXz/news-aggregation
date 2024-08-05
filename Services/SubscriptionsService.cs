@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NewsAggregation.Data;
 using NewsAggregation.Data.UnitOfWork;
 using NewsAggregation.DTO.Subscriptions;
+using NewsAggregation.Helpers;
 using NewsAggregation.Models;
 using NewsAggregation.Services.Interfaces;
 using Stripe;
@@ -89,46 +90,6 @@ namespace NewsAggregation.Services
             }
         }
 
-        public async Task<IActionResult> CreateSubscription(SubscriptionCreateDto subscriptionRequest)
-        {
-            try
-            {
-                var options = new SubscriptionCreateOptions
-                {
-                    Customer = subscriptionRequest.StripeCustomerId,
-                    Items = new List<SubscriptionItemOptions>
-                    {
-                        new SubscriptionItemOptions
-                        {
-                            Price = subscriptionRequest.StripePriceId,
-                        },
-
-                    },
-                };
-                var service = new SubscriptionService();
-                Subscription subscription = await service.CreateAsync(options);
-                var newsubscription = new Subscriptions
-                {
-                    UserId = subscriptionRequest.UserId,
-                    PlanId = subscriptionRequest.PlanId,
-                    StartDate = subscriptionRequest.StartDate,
-                    EndDate = subscriptionRequest.EndDate,
-                    Amount = subscriptionRequest.Amount,
-                    Currency = subscriptionRequest.Currency
-                };
-
-                _unitOfWork.Repository<Subscriptions>().Create(newsubscription);
-                await _unitOfWork.CompleteAsync();
-
-                return new OkObjectResult(subscription);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in CreateSubscription");
-                return new StatusCodeResult(500);
-            }
-        }
-
         public async Task<IActionResult> UpdateSubscription(Guid id, SubscriptionCreateDto subscriptionRequest)
         {
             try
@@ -182,7 +143,7 @@ namespace NewsAggregation.Services
             }
         }
         
-        public async Task<IActionResult> ExpireSubscription(Guid id)
+        public async Task<IActionResult> CancelSubscription(Guid id)
         {
             try
             {
@@ -193,7 +154,8 @@ namespace NewsAggregation.Services
                     return new NotFoundResult();
                 }
 
-                subscription.EndDate = DateTime.UtcNow.AddYears(1);
+                subscription.EndDate = DateTime.UtcNow;
+
                 _unitOfWork.Repository<Subscriptions>().Update(subscription);
                 await _unitOfWork.CompleteAsync();
 

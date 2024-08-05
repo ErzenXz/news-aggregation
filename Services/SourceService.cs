@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using NewsAggregation.Data;
 using NewsAggregation.DTO.Source;
+using NewsAggregation.Helpers;
 using NewsAggregation.Models;
 using NewsAggregation.Services.Interfaces;
 

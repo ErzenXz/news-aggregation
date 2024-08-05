@@ -209,13 +209,13 @@ namespace NewsAggregation.Services
                         .Where(b => b.UserId == userId)
                         .ToListAsync();
 
-                    // Extract tags or categories of interest from user history and bookmarks
+                    // Extract tags or categories of interest from user history and 
                     var userTags = userHistory.Select(uh => uh.Tags).Concat(userBookmarks.Select(b => b.Article.Tags)).Distinct().ToList();
 
                     // Fetch ads based on user tags and ensure they are active
                     var ads = await _dBContext.Ads
                         .Where(a => a.CreatedAt <= now && a.ValidUntil >= now && userTags.Contains(a.Tags))
-                        .OrderByDescending(a => a.GuaranteedViews > a.Views) // Prioritize ads that haven't reached guaranteed views
+                        .OrderByDescending(a => a.GuaranteedViews > a.Views) 
                         .ThenBy(a => a.Views) // Order by views (ascending)
                         .ThenByDescending(a => a.Clicks) // Then by clicks (descending)
                         .ThenBy(a => a.CreatedAt) // Then by creation date (ascending)

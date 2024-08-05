@@ -61,7 +61,7 @@ namespace NewsAggregation.Services.Cached
 
             await _redis.SetStringAsync(cacheKey, serializedResult, new DistributedCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
             });
 
 
@@ -92,12 +92,6 @@ namespace NewsAggregation.Services.Cached
             return new OkObjectResult(result);
         }
 
-        public async Task<IActionResult> CreateSubscription(SubscriptionCreateDto subscriptionRequest)
-        {
-            var result = await _decorated.CreateSubscription(subscriptionRequest);
-            return new OkObjectResult(result);
-        }
-
         public async Task<IActionResult> UpdateSubscription(Guid id, SubscriptionCreateDto subscriptionRequest)
         {
             var result = await _decorated.UpdateSubscription(id, subscriptionRequest);
@@ -125,9 +119,9 @@ namespace NewsAggregation.Services.Cached
             return new OkObjectResult(result);
         }
 
-        public async Task<IActionResult> ExpireSubscription(Guid id)
+        public async Task<IActionResult> CancelSubscription(Guid id)
         {
-            var result = await _decorated.ExpireSubscription(id);
+            var result = await _decorated.CancelSubscription(id);
             return new ObjectResult(result);
         }
     }

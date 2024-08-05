@@ -1,8 +1,7 @@
-﻿namespace NewsAggregation.Services
+﻿namespace NewsAggregation.Services.ServiceJobs.Email.Deprecated
 {
     using Microsoft.AspNetCore.Http.HttpResults;
     using Microsoft.AspNetCore.Mvc;
-    using NewsAggregation.Services.ServiceJobs.Email.Deprecated;
     using System;
     using System.Net.Mail;
 
@@ -38,7 +37,7 @@
             }
             catch (Exception ex)
             {
-                return new BadRequestObjectResult(new { Message = ex.Message });
+                return new BadRequestObjectResult(new { ex.Message });
             }
         }
     }

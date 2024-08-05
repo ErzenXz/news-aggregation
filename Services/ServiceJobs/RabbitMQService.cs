@@ -15,7 +15,7 @@
     using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
-
+    using System.Web;
 
     public class RabbitMQService : BackgroundService
     {
@@ -116,10 +116,22 @@
                 EnableSsl = false
             };
 
-            var mailMessage = new MailMessage(emailMessage.From, emailMessage.To, emailMessage.Subject, emailMessage.Body);
+            //var sanitizedBody = HttpUtility.HtmlEncode(emailMessage.Body);
+
+
+            var mailMessage = new MailMessage
+            {
+                From = new MailAddress(emailMessage.From),
+                Subject = emailMessage.Subject,
+                Body = emailMessage.Body,
+                IsBodyHtml = true
+            };
+
+            mailMessage.To.Add(emailMessage.To);
 
             await client.SendMailAsync(mailMessage);
         }
+
 
         public override void Dispose()
         {

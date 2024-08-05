@@ -31,14 +31,14 @@ namespace NewsAggregation.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthService> _logger;
-        private readonly EmailQueueService _emailQueueService;
+        //private readonly EmailQueueService _emailQueueService;
 
-        public AuthService(DBContext dbContext, IHttpContextAccessor httpContextAccessor, IConfiguration configuration, EmailQueueService emailQueueService, ILogger<AuthService> logger)
+        public AuthService(DBContext dbContext, IHttpContextAccessor httpContextAccessor, IConfiguration configuration, /*EmailQueueService emailQueueService*/ ILogger<AuthService> logger)
         {
             _dBContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
             _configuration = configuration;
-            _emailQueueService = emailQueueService;
+            //_emailQueueService = emailQueueService;
             _logger = logger;
         }
 
@@ -362,7 +362,7 @@ namespace NewsAggregation.Services
                             Body = EmailTemplates.IP_LOGGED_FROM_NEW_LOCATION
                         };
 
-                        _emailQueueService.QueueEmail(emailMessage);
+                        //_emailQueueService.QueueEmail(emailMessage);
 
                     }
                     return new OkObjectResult(new { Message = "User logged in successfully!", Code = 38, AccessToken = accessToken, newRefreshToken });
@@ -455,7 +455,7 @@ namespace NewsAggregation.Services
                     Body = $"<h1>Hello!</h1><br>You have requested to reset your password in Sapientia.<br>Here is your new password: <strong>" + newPassword + "</strong><br>Thanks!"
                 };
 
-                _emailQueueService.QueueEmail(emailMessage);
+                //_emailQueueService.QueueEmail(emailMessage);
 
                 return new OkObjectResult(new { Password = newPassword, Message = $"Here is your new generated password: {newPassword}, It was also send via email.", Code = 69 });
 
@@ -510,7 +510,7 @@ namespace NewsAggregation.Services
                     "Thanks!"
                 };
 
-                _emailQueueService.QueueEmail(emailMessage);
+                //_emailQueueService.QueueEmail(emailMessage);
 
                 return new OkObjectResult(new { Message = "A code was send to your email. ", Code = 68 });
             }
@@ -620,7 +620,7 @@ namespace NewsAggregation.Services
                                                                             "Thanks!"
             };
 
-            _emailQueueService.QueueEmail(emailMessage);
+            //_emailQueueService.QueueEmail(emailMessage);
 
             return new OkObjectResult(new { Message = "Email verification code sent successfully!", Code = 1000 });
         }

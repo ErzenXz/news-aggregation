@@ -275,12 +275,12 @@ builder.Services.AddLogging(config =>
     config.AddDebug();
 });
 
-builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
-builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection("RabbitMQSettings"));
+//builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
+//builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection("RabbitMQSettings"));
 
-builder.Services.AddSingleton<RabbitMQService>();
-builder.Services.AddSingleton<EmailQueueService>();
-builder.Services.AddHostedService<RabbitMQService>();
+//builder.Services.AddSingleton<RabbitMQService>();
+//builder.Services.AddSingleton<EmailQueueService>();
+//builder.Services.AddHostedService<RabbitMQService>();
 
 
 var app = builder.Build();

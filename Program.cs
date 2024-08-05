@@ -33,8 +33,13 @@ using NewsAggregation.Services.ServiceJobs.Email.Deprecated;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+
+//builder.Host.UseSerilog((context, loggerConfig) =>
+   // loggerConfig.ReadFrom.Configuration(context.Configuration));
 
 // Allow CORS
 builder.Services.AddCors(options =>

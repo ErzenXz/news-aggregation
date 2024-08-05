@@ -33,8 +33,13 @@ using NewsAggregation.Services.ServiceJobs.Email.Deprecated;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+
+//builder.Host.UseSerilog((context, loggerConfig) =>
+   // loggerConfig.ReadFrom.Configuration(context.Configuration));
 
 // Allow CORS
 builder.Services.AddCors(options =>
@@ -270,12 +275,12 @@ builder.Services.AddLogging(config =>
     config.AddDebug();
 });
 
-builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
-builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection("RabbitMQSettings"));
+//builder.Services.Configure<SmtpSettings>(builder.Configuration.GetSection("Smtp"));
+//builder.Services.Configure<RabbitMQSettings>(builder.Configuration.GetSection("RabbitMQSettings"));
 
-builder.Services.AddSingleton<RabbitMQService>();
-builder.Services.AddSingleton<EmailQueueService>();
-builder.Services.AddHostedService<RabbitMQService>();
+//builder.Services.AddSingleton<RabbitMQService>();
+//builder.Services.AddSingleton<EmailQueueService>();
+//builder.Services.AddHostedService<RabbitMQService>();
 
 
 var app = builder.Build();
